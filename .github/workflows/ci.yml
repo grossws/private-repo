@@ -45,3 +45,17 @@ jobs:
         env:
           MAVEN_USERNAME: ${{ github.actor }}
           MAVEN_PASSWORD: ${{ github.token }}
+
+      - name: Publish release to Gradle Plugin Portal
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: burrunan/gradle-cache-action@v1
+        with:
+          job-id: jdk11
+          arguments: |
+            publishPlugin
+          properties: |
+            release.useLastTag=true
+            gradle.publish.key=${{ secrets.GRADLE_PLUGIN_PORTAL_KEY }}
+            gradle.publish.secret=${{ secrets.GRADLE_PLUGIN_PORTAL_SECRET }}
+          read-only: true
+          gradle-distribution-sha-256-sum-warning: false
