@@ -52,11 +52,9 @@ internal class NexusPluginImpl : Plugin<Settings> {
   private fun Settings.configureRepos() {
     val nexusGroups: String? by this
     val groups = nexusGroups.parseList()
-    println("groups: ${groups.joinToString(", ", "[", "]")} (${groups.size})")
 
     val nexusGroupRegexes: String? by this
     val regexes = nexusGroupRegexes.parseList()
-    println("regexes: ${regexes.joinToString(", ", "[", "]")} (${regexes.size})")
 
     val nexusDefaultGroupRegex: String? by this
     val defaultRegex = if (nexusDefaultGroupRegex.parseSwitch(true)) {
@@ -66,7 +64,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
     } else {
       null
     }
-    println("default regexes: ${defaultRegex ?: "null"}")
 
     dependencyResolutionManagement.repositories.mavenCentral {
       content {
