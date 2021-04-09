@@ -2,7 +2,11 @@ name: CI
 
 on:
   push:
+    paths-ignore:
+      - '**.adoc'
   pull_request:
+    paths-ignore:
+      - '**.adoc'
 
 jobs:
   build:
