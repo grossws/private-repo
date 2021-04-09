@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Check gradle-wrapper
+        uses: gradle/wrapper-validation-action@v1
+
+      - name: Build
+        uses: burrunan/gradle-cache-action@v1
+        with:
+          job-id: jdk11
+          arguments: build
+          properties: |
+            release.useLastTag=${{ startsWith(github.ref, 'refs/tags/v') }}
+          read-only: ${{ github.ref != 'refs/heads/main' }}
+          gradle-distribution-sha-256-sum-warning: false
+
+      - name: Publish release to GitHub Packages
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: burrunan/gradle-cache-action@v1
+        with:
+          job-id: jdk11
+          arguments: |
+            --init-script .github/publishing-ghp.init.gradle.kts
+            publish
+          properties: |
+            release.useLastTag=true
+          read-only: true
+          gradle-distribution-sha-256-sum-warning: false
+        env:
+          MAVEN_USERNAME: ${{ github.actor }}
+          MAVEN_PASSWORD: ${{ github.token }}
