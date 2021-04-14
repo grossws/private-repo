@@ -24,7 +24,7 @@ import org.gradle.authentication.http.BasicAuthentication
 import org.gradle.kotlin.dsl.*
 import java.net.URI
 
-internal fun RepositoryHandler.findOrCreateNexusRepo(
+fun RepositoryHandler.findOrCreateNexusRepo(
   baseUrl: String?,
   repoName: String,
   repoPath: String,
@@ -35,7 +35,7 @@ internal fun RepositoryHandler.findOrCreateNexusRepo(
   configuration()
 }
 
-internal fun MavenArtifactRepository.withAuth() {
+fun MavenArtifactRepository.withAuth() {
   credentials(PasswordCredentials::class.java)
   authentication.create<BasicAuthentication>("basic")
 }
