@@ -23,7 +23,7 @@ gradlePlugin {
     id = "ws.gross.private-repo"
     displayName = "Plugin for private repository configuration"
     description = """
-      Settings plugin to configure dependencyResolutionManagement and pluginManagement
+      Gradle Settings plugin to configure dependencyResolutionManagement and pluginManagement
       to use private Nexus/Artifactory repository with auth and convenient defaults.
     """.trimIndent()
     implementationClass = "ws.gross.gradle.NexusPlugin"

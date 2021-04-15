@@ -16,6 +16,7 @@
 
 package ws.gross.gradle
 
+import org.gradle.api.Action
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.artifacts.repositories.ArtifactRepository
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
@@ -24,15 +25,19 @@ import org.gradle.authentication.http.BasicAuthentication
 import org.gradle.kotlin.dsl.*
 import java.net.URI
 
-fun RepositoryHandler.findOrCreateNexusRepo(
-  baseUrl: String?,
+internal class RepoHelper(val baseUrl: String) {
+  fun repoUrl(repoPath: String) = "$baseUrl/repository/$repoPath"
+}
+
+internal fun RepositoryHandler.findOrCreateNexusRepo(
+  rh: RepoHelper,
   repoName: String,
   repoPath: String,
-  configuration: MavenArtifactRepository.() -> Unit
+  configuration: Action<in MavenArtifactRepository> = Action {}
 ): ArtifactRepository = findByName(repoName) ?: maven {
   name = repoName
-  url = URI.create("$baseUrl/repository/$repoPath")
-  configuration()
+  url = URI.create(rh.repoUrl(repoPath))
+  configuration.execute(this)
 }
 
 fun MavenArtifactRepository.withAuth() {

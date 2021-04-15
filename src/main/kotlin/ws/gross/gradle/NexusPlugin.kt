@@ -18,16 +18,20 @@ package ws.gross.gradle
 
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.initialization.Settings
+import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.PluginInstantiationException
 import org.gradle.kotlin.dsl.*
 import org.gradle.util.GradleVersion
-import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.Properties
 
 class NexusPlugin : Plugin<Settings> {
@@ -46,14 +50,15 @@ internal class NexusPluginImpl : Plugin<Settings> {
     const val GRADLE_RELEASES_REPO_NAME = "nexusReleasesGradle"
     const val GRADLE_SNAPSHOTS_REPO_NAME = "nexusSnapshotsGradle"
 
-    val logger = Logging.getLogger(NexusPlugin::class.java)
+    private val logger: Logger = Logging.getLogger(NexusPlugin::class.java)
   }
 
-  lateinit var baseUrl: String
+  private lateinit var rh: RepoHelper
 
   override fun apply(settings: Settings) {
     val nexusUrl: String? by settings
-    baseUrl = nexusUrl ?: throw PluginInstantiationException("nexusUrl should be defined in gradle properties")
+    rh = RepoHelper(nexusUrl ?: throw PluginInstantiationException("nexusUrl should be defined in gradle properties"))
+    logger.info("Configuring private repo with nexusUrl $nexusUrl")
 
     settings.configurePluginRepos()
     settings.configureRepos()
@@ -63,15 +68,16 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
   private fun Settings.configurePluginRepos() {
     pluginManagement.repositories {
+      logger.info("Adding gradlePluginPortal to pluginManagement")
       gradlePluginPortal()
 
-      findOrCreateNexusRepo(baseUrl, GRADLE_RELEASES_REPO_NAME, "gradle") {
+      logger.info("Adding $GRADLE_RELEASES_REPO_NAME(${rh.repoUrl("gradle")}) to pluginManagement")
+      findOrCreateNexusRepo(rh, GRADLE_RELEASES_REPO_NAME, "gradle") {
         mavenContent { releasesOnly() }
       }
 
-      findOrCreateNexusRepo(baseUrl, GRADLE_SNAPSHOTS_REPO_NAME, "gradle/dev") {
-        mavenContent { snapshotsOnly() }
-      }
+      logger.info("Adding $GRADLE_SNAPSHOTS_REPO_NAME(${rh.repoUrl("gradle/dev")}) to pluginManagement")
+      findOrCreateNexusRepo(rh, GRADLE_SNAPSHOTS_REPO_NAME, "gradle/dev")
     }
   }
 
@@ -85,13 +91,14 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
     val nexusDefaultGroupRegex: String? by this
     val defaultRegex = if (nexusDefaultGroupRegex.parseSwitch(true)) {
-      val url = URI.create(baseUrl)
+      val url = URI.create(rh.baseUrl)
       val prefix = url.host.split('.').asReversed().take(2).joinToString(".")
       prefix.replace(".", "\\.") + "(\\..*)?"
     } else {
       null
     }
 
+    logger.info("Adding mavenCentral to dependencyResolutionManagement")
     dependencyResolutionManagement.repositories.mavenCentral {
       content {
         groups.forEach { excludeGroup(it) }
@@ -116,61 +123,83 @@ internal class NexusPluginImpl : Plugin<Settings> {
     require(components.size == 3) { "nexusPrivatePluginsBootstrap should be in group:module:version notation" }
     val (group, module, version) = components
 
-    val httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build()
+    val cached = Paths.get("$settingsDir/.gradle/${group}.${module}-$version.properties")
+    val metaUrl = URI.create("${rh.repoUrl("gradle")}/${metaMavenPath(group, module, version)}")
 
-    val cached = File("$settingsDir/.gradle/${group}.${module}-$version.properties")
-    if (!cached.exists()) {
-      val path = "${group.replace('.', '/')}/$module/$version/$module-$version.properties"
-      val req = HttpRequest.newBuilder(URI.create("$baseUrl/repository/gradle/$path")).GET().build()
-
-      val resp = httpClient.send(req, HttpResponse.BodyHandlers.ofFile(cached.toPath()))
-
-      if (resp.statusCode() != 200) {
-        throw GradleException("Failed to download ${resp.uri()}: $resp")
-      }
+    val bootstrap = Bootstrap.parse(cached) ?: fetchMeta(metaUrl, cached)
+    if (bootstrap == null) {
+      logger.warn("Failed to load nexusPrivatePluginsBootstrap meta from $metaUrl")
+      return
     }
 
-    if (cached.exists()) {
-      val props = Properties().apply { cached.reader().use { load(it) } }
-      val ids = props.getProperty("ids").split(',').map { it.trim() }
-      val version = props.getProperty("version")
+    pluginManagement.plugins {
+      bootstrap.ids.forEach { id(it) version (bootstrap.version) }
+    }
+  }
 
-      pluginManagement.plugins {
-        ids.forEach { id(it) version (version) }
+  private fun fetchMeta(metaUrl: URI, destinationPath: Path): Bootstrap? {
+    val httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build()
+    val req = HttpRequest.newBuilder(metaUrl).GET().build()
+    val resp = httpClient.send(req, HttpResponse.BodyHandlers.ofFile(destinationPath))
+    logger.debug("Fetching bootstrap meta from $metaUrl : got ${resp.statusCode()}")
+
+    if (resp.statusCode() != 200) {
+      throw GradleException("Failed to download ${resp.uri()}: $resp")
+    }
+
+    return Bootstrap.parse(destinationPath)
+  }
+
+  private fun metaMavenPath(group: String, module: String, version: String) =
+    "${group.replace('.', '/')}/$module/$version/$module-$version.properties"
+
+  data class Bootstrap(val ids: List<String>, val version: String) {
+    companion object {
+      private val logger: Logger = Logging.getLogger(Bootstrap::class.java)
+
+      fun parse(path: Path?): Bootstrap? {
+        path ?: return null
+        if (!Files.exists(path)) return null
+
+        val props = Properties().apply { path.toFile().reader().use { load(it) } }
+        val ids = props.getProperty("ids").split(',').map { it.trim() }
+        val version = props.getProperty("version")
+
+        if (ids.isEmpty() || version.isEmpty()) {
+          logger.info("nexusPrivatePluginsBootstrap cache invalid")
+          return null
+        }
+        return Bootstrap(ids, version)
       }
     }
   }
 
   @Suppress("UnstableApiUsage")
   private fun Settings.configureNexusRepo(
-    repoId: String,
+    repoPath: String,
     groups: List<String>,
     regexes: List<String>,
     defaultRegex: String?,
     exclusive: Boolean,
-  ) {
-    dependencyResolutionManagement.repositories {
-      if (exclusive) {
-        exclusiveContent {
-          forRepository {
-            findOrCreateNexusRepo(baseUrl, NEXUS_REPO_NAME, repoId) {
-              withAuth()
-            }
-          }
-
-          filter {
-            groups.forEach { includeGroup(it) }
-            regexes.forEach { includeGroupByRegex(it) }
-            if (defaultRegex != null && groups.isEmpty() && regexes.isEmpty()) {
-              includeGroupByRegex(defaultRegex)
-            }
-          }
+  ) = dependencyResolutionManagement.repositories {
+    if (exclusive) {
+      logger.info("Adding exclusive $NEXUS_REPO_NAME(${rh.repoUrl(repoPath)}) to dependencyResolutionManagement")
+      exclusiveContent {
+        forRepository {
+          findOrCreateNexusRepo(rh, NEXUS_REPO_NAME, repoPath, MavenArtifactRepository::withAuth)
         }
-      } else {
-        findOrCreateNexusRepo(baseUrl, NEXUS_REPO_NAME, repoId) {
-          withAuth()
+
+        filter {
+          groups.forEach { includeGroup(it) }
+          regexes.forEach { includeGroupByRegex(it) }
+          if (defaultRegex != null && groups.isEmpty() && regexes.isEmpty()) {
+            includeGroupByRegex(defaultRegex)
+          }
         }
       }
+    } else {
+      logger.info("Adding $NEXUS_REPO_NAME(${rh.repoUrl(repoPath)}) to dependencyResolutionManagement")
+      findOrCreateNexusRepo(rh, NEXUS_REPO_NAME, repoPath, MavenArtifactRepository::withAuth)
     }
   }
 }
