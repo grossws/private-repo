@@ -77,10 +77,10 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
   @Suppress("UnstableApiUsage")
   private fun Settings.configureRepos() {
-    val nexusGroups: String? by this
+    val nexusGroups: String? by settings
     val groups = nexusGroups.parseList()
 
-    val nexusGroupRegexes: String? by this
+    val nexusGroupRegexes: String? by settings
     val regexes = nexusGroupRegexes.parseList()
 
     val nexusDefaultGroupRegex: String? by this
@@ -102,8 +102,8 @@ internal class NexusPluginImpl : Plugin<Settings> {
       }
     }
 
-    val nexusTarget: String? by this
-    val nexusExclusive: String? by this
+    val nexusTarget: String? by settings
+    val nexusExclusive: String? by settings
     val exclusive = nexusExclusive.parseSwitch(false)
     configureNexusRepo(nexusTarget ?: "public", groups, regexes, defaultRegex, exclusive)
   }
