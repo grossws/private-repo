@@ -126,22 +126,26 @@ internal class NexusPluginImpl : Plugin<Settings> {
   private fun Settings.addPrivatePluginsBootstrap() {
     val nexusPrivatePluginsBootstrap: String? by settings
     nexusPrivatePluginsBootstrap ?: return
+    val bootstrapPlugins = nexusPrivatePluginsBootstrap!!.split(',').map { it.trim() }
+    logger.info("Add bootstrap plugins ${bootstrapPlugins.joinToString(", ")}")
 
-    val components = nexusPrivatePluginsBootstrap!!.split(':')
-    require(components.size == 3) { "nexusPrivatePluginsBootstrap should be in group:module:version notation" }
-    val (group, module, version) = components
+    for (bootstrapPlugin in bootstrapPlugins) {
+      val components = bootstrapPlugin.split(':')
+      require(components.size == 3) { "bootstrap plugins should be in group:module:version notation" }
+      val (group, module, version) = components
 
-    val cached = Paths.get("$settingsDir/.gradle/${group}.${module}-$version.properties")
-    val metaUrl = URI.create("${rh.repoUrl("gradle")}/${metaMavenPath(group, module, version)}")
+      val cached = Paths.get("$settingsDir/.gradle/${group}.${module}-$version.properties")
+      val metaUrl = URI.create("${rh.repoUrl("gradle")}/${metaMavenPath(group, module, version)}")
 
-    val bootstrap = Bootstrap.parse(cached) ?: fetchMeta(metaUrl, cached)
-    if (bootstrap == null) {
-      logger.warn("Failed to load nexusPrivatePluginsBootstrap meta from $metaUrl")
-      return
-    }
+      val bootstrap = Bootstrap.parse(cached) ?: fetchMeta(metaUrl, cached)
+      if (bootstrap == null) {
+        logger.warn("Failed to load nexusPrivatePluginsBootstrap meta from $metaUrl")
+        return
+      }
 
-    pluginManagement.plugins {
-      bootstrap.ids.forEach { id(it) version (bootstrap.version) }
+      pluginManagement.plugins {
+        bootstrap.ids.forEach { id(it) version (bootstrap.version) }
+      }
     }
   }
 
