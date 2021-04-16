@@ -32,6 +32,7 @@ class BootstrapManifestPlugin : Plugin<Project> {
     manifests.all {
       val manifest = this
       outputFileName.convention("$name.properties")
+      version.convention(provider { project.version.toString() })
       tasks.register("generate${name.capitalize()}Manifest", GenerateManifest::class.java) {
         this.manifest.set(manifest)
       }
