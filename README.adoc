@@ -12,7 +12,12 @@ endif::[]
 
 == About
 
-Gradle plugin to configure private repository (Nexus, Artifactory) with sane defaults (for me).
+Gradle Settings plugin `ws.gross.private-repo` to configure private repository (Nexus, Artifactory) with sane defaults (for me).
+
+Also contains these project plugins:
+
+* `ws.gross.private-repo-publish` plugin to configure `maven-publish` publishing repositories;
+* `ws.gross.bootstrap-manifest` to generate manifest files.
 
 IMPORTANT: Supports Gradle 6.8+.
 
