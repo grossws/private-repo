@@ -38,6 +38,16 @@ gradlePlugin {
     """.trimIndent()
     implementationClass = "ws.gross.gradle.NexusPublishPlugin"
   }
+
+  plugins.create("bootstrap-manifest") {
+    id = "ws.gross.bootstrap-manifest"
+    displayName = "Plugin to generate bootstrap manifest to configure project plugins"
+    description = """
+      Gradle plugin to generate bootstrap manifest files (properties file with ids and version fields)
+      to use with nexusPrivatePluginsBootstrap feature in private-repo plugin.
+    """.trimIndent()
+    implementationClass = "ws.gross.gradle.BootstrapManifestPlugin"
+  }
 }
 
 pluginBundle {
