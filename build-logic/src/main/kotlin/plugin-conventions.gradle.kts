@@ -25,3 +25,12 @@ plugins {
 gradlePlugin {
   testSourceSets(sourceSets["functionalTest"])
 }
+
+tasks.named<Jar>("jar") {
+  manifest {
+    attributes(
+      "Implementation-Title" to "ws.gross.private-repo Gradle plugins",
+      "Implementation-Version" to project.version,
+    )
+  }
+}
