@@ -19,6 +19,7 @@ package ws.gross.gradle
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
@@ -34,6 +35,8 @@ class BootstrapManifestPlugin : Plugin<Project> {
       outputFileName.convention("$name.properties")
       version.convention(provider { project.version.toString() })
       tasks.register("generate${name.capitalize()}Manifest", GenerateManifest::class.java) {
+        group = BasePlugin.BUILD_GROUP
+        description = "Generate bootstrap manifest $name"
         this.manifest.set(manifest)
       }
     }
