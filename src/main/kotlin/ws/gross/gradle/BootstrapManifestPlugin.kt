@@ -36,7 +36,7 @@ class BootstrapManifestPlugin : Plugin<Project> {
       version.convention(provider { project.version.toString() })
       tasks.register("generate${name.capitalize()}Manifest", GenerateManifest::class.java) {
         group = BasePlugin.BUILD_GROUP
-        description = "Generate bootstrap manifest $name"
+        description = "Generate bootstrap manifest ${manifest.name}"
         this.manifest.set(manifest)
       }
     }
