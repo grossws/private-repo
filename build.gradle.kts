@@ -32,7 +32,7 @@ gradlePlugin {
   plugins.create("private-repo-publish") {
     id = "ws.gross.private-repo-publish"
     displayName = "Plugin for private repository publication configuration"
-    description ="""
+    description = """
       Gradle plugin to configure `maven-publish` plugin with sane default repositories
       to use with private Nexus/Artifactory authenticated repo.
     """.trimIndent()

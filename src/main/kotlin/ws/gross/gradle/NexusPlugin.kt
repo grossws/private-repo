@@ -119,7 +119,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
   private fun Settings.addNexusPublishPlugin() {
     val version = NexusPlugin::class.java.`package`.implementationVersion
     pluginManagement.plugins {
-      id("ws.gross.private-repo-publish") version(version)
+      id("ws.gross.private-repo-publish") version (version)
     }
   }
 
