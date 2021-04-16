@@ -16,58 +16,91 @@
 
 package ws.gross.gradle
 
+import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.*
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.WriteProperties
+import org.gradle.kotlin.dsl.*
 import javax.inject.Inject
 
 class BootstrapManifestPlugin : Plugin<Project> {
-  override fun apply(project: Project) = project.run {
+  override fun apply(project: Project): Unit = project.run {
+    logger.info("Applying BootstrapManifestPlugin")
+    pluginManager.apply(BasePlugin::class)
+
     val manifests = objects.domainObjectContainer(Manifest::class.java)
     extensions.add("manifests", manifests)
 
-    manifests.all {
-      val manifest = this
-      outputFileName.convention("$name.properties")
-      version.convention(provider { project.version.toString() })
+    manifests.whenObjectAdded {
+      logger.info("Manifest `${this.name}` added")
+
+      val manifest = apply {
+        version.convention(provider { project.version.toString() })
+        outputDir.convention(layout.buildDirectory)
+        outputFileName.convention("$name.properties")
+      }
+
       tasks.register("generate${name.capitalize()}Manifest", GenerateManifest::class.java) {
         group = BasePlugin.BUILD_GROUP
         description = "Generate bootstrap manifest ${manifest.name}"
-        this.manifest.set(manifest)
+
+        ids.convention(manifest.ids)
+        version.convention(manifest.version.convention(provider { project.version.toString() }))
+        outputFile.convention(manifest.outputDir.file(outputFileName))
       }
+    }
+
+    tasks.register("generateManifests") {
+      group = BasePlugin.BUILD_GROUP
+      description = "Lifecycle task depending on all generate*Manifest tasks"
+
+      dependsOn(tasks.withType<GenerateManifest>())
     }
   }
 }
 
-abstract class Manifest @Inject constructor(@get:Internal val name: String) {
+abstract class Manifest @Inject constructor(val name: String) {
+  abstract val ids: ListProperty<String>
+
+  abstract val version: Property<String>
+
+  abstract val outputDir: DirectoryProperty
+
+  abstract val outputFileName: Property<String>
+}
+
+abstract class GenerateManifest : DefaultTask() {
+  //  @get:Internal
+  private val delegate = WriteProperties()
+
   @get:Input
   abstract val ids: ListProperty<String>
 
   @get:Input
   abstract val version: Property<String>
 
-  @get:OutputDirectory
-  abstract val outputDir: DirectoryProperty
-
-  @get:Input
-  abstract val outputFileName: Property<String>
-}
-
-abstract class GenerateManifest : WriteProperties() {
-  @get:Nested
-  abstract val manifest: Property<Manifest>
+  @get:OutputFile
+  abstract val outputFile: RegularFileProperty
 
   @TaskAction
-  override fun writeProperties() {
-    val m = manifest.get()
-    outputFile = m.outputDir.file(m.outputFileName).get().asFile
-    property("ids", m.ids.get().sorted().joinToString(","))
-    property("version", m.version.get())
+  fun writeProperties() {
+    delegate.setOutputFile(outputFile)
+    delegate.property("ids", ids.get().sorted().joinToString(","))
+    delegate.property("version", version.get())
 
-    super.writeProperties()
+    logger.info("""
+    Writing manifest to ${outputFile.get()}:
+      ids = ${ids.get().sorted().joinToString(" \\\n        ")}
+      version = ${version.get()}
+    """.trimIndent())
+    delegate.writeProperties()
   }
 }
