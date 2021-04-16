@@ -35,9 +35,13 @@ Configured via gradle properties (e.g. in `~/.gradle/gradle.properties`).
 | `nexusGroups` | Groups to exclude from Maven Central | empty | `com.example,org.example`
 | `nexusGroupRegexes`| Regexes for groups to exclude when searching Maven Central | derived from `nexusUrl` base domain | `com\\.example(\\..*)?`
 | `nexusDefaultGroupRegex` | Flag to enable generating default group regex from `nexusUrl` | `true` |
+| `nexusPrivatePluginsBootstrap` | Comma-separated list of manifest GAV coordinates to add plugins to `pluginManagement` | empty | `com.example:bootstrap:1.0.0`
+| `nexusReleasesRepo` | Releases repo id for `ws.gross.private-repo-publish` plugin | `releases` |
+| `nexusSnapshotsRepo` | Snapshots repo id for `ws.gross.private-repo-publish` plugin | `snapshots` |
+| `nexusReleaseVersionRegex` | Regex to determine if version is release | `\d+\.\d+(?:\.\d+)?(?:-rc\.\d+)?` |
 |===
 
-CAUTION: `\` in `gradle.properties` requires escaping, so you have to use `\\.` instead of `\.`
+CAUTION: `\` and `:` in `gradle.properties` requires escaping, so you have to use `\\.`/`\:` instead of `\.`/`:`
 
 .Effective additions to settings.gradle.kts
 [source,kotlin]
@@ -55,6 +59,15 @@ pluginManagement {
     name = "nexusSnapshotsGradle"
     url = uri("$nexusUrl/repository/gradle/dev")
     mavenContent { snapshotsOnly() }
+  }
+
+  plugins {
+    // Bootstrap manifest artifacts contains properties file with comma-separated plugin ids (`ids` field) and `version`.
+    // So for manifest:
+    //   ids = com.example.first, com.example.second
+    //   version = 1.2
+    id("com.example.first") version("1.2")
+    id("com.example.second") version("1.2")
   }
 }
 
