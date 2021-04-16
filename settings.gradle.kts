@@ -17,6 +17,10 @@
 rootProject.name = "gradle-private-repo-plugin"
 
 includeBuild("build-logic")
+pluginManagement {
+  @Suppress("UnstableApiUsage")
+  includeBuild("build-logic")
+}
 
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
