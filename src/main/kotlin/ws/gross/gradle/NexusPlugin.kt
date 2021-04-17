@@ -25,6 +25,8 @@ import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.PluginInstantiationException
 import org.gradle.kotlin.dsl.*
 import org.gradle.util.GradleVersion
+import java.net.Authenticator
+import java.net.PasswordAuthentication
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -124,6 +126,18 @@ internal class NexusPluginImpl : Plugin<Settings> {
   }
 
   private fun Settings.addPrivatePluginsBootstrap() {
+    val nexusUsername: String by settings
+    val nexusPassword: String by settings
+    val httpClient = HttpClient.newBuilder()
+      .authenticator(object : Authenticator() {
+        override fun getPasswordAuthentication(): PasswordAuthentication {
+          logger.info("requested password auth")
+          return PasswordAuthentication(nexusUsername, nexusPassword.toCharArray())
+        }
+      })
+      .followRedirects(HttpClient.Redirect.NORMAL)
+      .build()
+
     val nexusPrivatePluginsBootstrap: String? by settings
     nexusPrivatePluginsBootstrap ?: return
     val bootstrapPlugins = nexusPrivatePluginsBootstrap!!.split(',').map { it.trim() }
@@ -138,7 +152,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
       val cached = Paths.get("$settingsDir/.gradle/${group}.${module}-$version.properties")
       val metaUrl = URI.create("${rh.repoUrl(repoId.ifEmpty { "gradle" })}/${metaMavenPath(group, module, version)}")
 
-      val bootstrap = Bootstrap.parse(cached) ?: fetchMeta(metaUrl, cached)
+      val bootstrap = Bootstrap.parse(cached) ?: httpClient.fetchMeta(metaUrl, cached)
       if (bootstrap == null) {
         logger.warn("Failed to load nexusPrivatePluginsBootstrap meta from $metaUrl")
         return
@@ -150,10 +164,9 @@ internal class NexusPluginImpl : Plugin<Settings> {
     }
   }
 
-  private fun fetchMeta(metaUrl: URI, destinationPath: Path): Bootstrap? {
-    val httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build()
+  private fun HttpClient.fetchMeta(metaUrl: URI, destinationPath: Path): Bootstrap? {
     val req = HttpRequest.newBuilder(metaUrl).GET().build()
-    val resp = httpClient.send(req, HttpResponse.BodyHandlers.ofFile(destinationPath))
+    val resp = send(req, HttpResponse.BodyHandlers.ofFile(destinationPath))
     logger.debug("Fetching bootstrap meta from $metaUrl : got ${resp.statusCode()}")
 
     if (resp.statusCode() != 200) {
