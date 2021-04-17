@@ -130,12 +130,13 @@ internal class NexusPluginImpl : Plugin<Settings> {
     logger.info("Add bootstrap plugins ${bootstrapPlugins.joinToString(", ")}")
 
     for (bootstrapPlugin in bootstrapPlugins) {
-      val components = bootstrapPlugin.split(':')
+      val repoId = bootstrapPlugin.substringBeforeLast('/', "")
+      val components = bootstrapPlugin.substringAfterLast('/').split(':')
       require(components.size == 3) { "bootstrap plugins should be in group:module:version notation" }
       val (group, module, version) = components
 
       val cached = Paths.get("$settingsDir/.gradle/${group}.${module}-$version.properties")
-      val metaUrl = URI.create("${rh.repoUrl("gradle")}/${metaMavenPath(group, module, version)}")
+      val metaUrl = URI.create("${rh.repoUrl(repoId.ifEmpty { "gradle" })}/${metaMavenPath(group, module, version)}")
 
       val bootstrap = Bootstrap.parse(cached) ?: fetchMeta(metaUrl, cached)
       if (bootstrap == null) {
