@@ -41,7 +41,7 @@ gradlePlugin {
 
   plugins.create("bootstrap-manifest") {
     id = "ws.gross.bootstrap-manifest"
-    displayName = "Plugin to generate bootstrap manifest to configure plugins and version catalogs"
+    displayName = "Plugin to generate and publish bootstrap manifest to configure plugins and version catalogs"
     description = """
       Gradle plugin to generate bootstrap manifest files (properties file with pluginIds, catalogIds 
       and version fields) to use with nexusBootstrap feature in private-repo plugin.

@@ -26,17 +26,36 @@ import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.kotlin.dsl.*
 import javax.inject.Inject
 
-class BootstrapManifestPlugin @Inject constructor(private val componentFactory: SoftwareComponentFactory) : Plugin<Project> {
+class BootstrapManifestPlugin : Plugin<Project> {
   override fun apply(project: Project): Unit = project.run {
     logger.info("Applying ws.gross.bootstrap-manifest plugin")
+    pluginManager.apply(BootstrapManifestBasePlugin::class)
+    pluginManager.apply("maven-publish")
+  }
+}
+
+class BootstrapManifestBasePlugin @Inject constructor(private val componentFactory: SoftwareComponentFactory) :
+  Plugin<Project> {
+  override fun apply(project: Project): Unit = project.run {
     pluginManager.apply("base")
 
     val ext = extensions.create("bootstrapManifest", BootstrapManifestExtension::class.java)
 
     val manifestComponent = componentFactory.adhoc("manifest").also { components.add(it) }
+
+    pluginManager.withPlugin("maven-publish") {
+      the<PublishingExtension>().publications {
+        create<MavenPublication>("manifestMaven") {
+          from(manifestComponent)
+          suppressAllPomMetadataWarnings()
+        }
+      }
+    }
 
     ext.manifests.configureEach {
       logger.info("Manifest `${this.name}` added")
