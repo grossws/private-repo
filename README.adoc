@@ -10,6 +10,10 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
+image:https://img.shields.io/maven-metadata/v/https/plugins.gradle.org/m2/ws/gross/private-repo/ws.gross.private-repo.gradle.plugin/maven-metadata.xml.svg?colorB=007ec6&label=Gradle+Plugin+Portal[link="https://plugins.gradle.org/plugin/ws.gross.private-repo"]
+image:https://github.com/grossws/gradle-private-repo-plugin/actions/workflows/ci.yml/badge.svg?branch=main[link="https://github.com/grossws/gradle-private-repo-plugin/actions/workflows/ci.yml"]
+image:https://img.shields.io/github/license/grossws/gradle-private-repo-plugin[link="https://www.apache.org/licenses/LICENSE-2.0"]
+
 == About
 
 Gradle Settings plugin `ws.gross.private-repo` to configure private repository (Nexus, Artifactory) with sane defaults (for me).
