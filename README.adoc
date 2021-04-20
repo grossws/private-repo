@@ -39,7 +39,7 @@ Configured via gradle properties (e.g. in `~/.gradle/gradle.properties`).
 | `nexusGroups` | Groups to exclude from Maven Central | empty | `com.example,org.example`
 | `nexusGroupRegexes`| Regexes for groups to exclude when searching Maven Central | derived from `nexusUrl` base domain | `com\\.example(\\..*)?`
 | `nexusDefaultGroupRegex` | Flag to enable generating default group regex from `nexusUrl` | `true` |
-| `nexusPrivatePluginsBootstrap` | Comma-separated list of manifest `[repoId/]GAV` coordinates to add plugins to `pluginManagement`; default repoId is `gradle` | empty | `com.example:bootstrap:1.0.0, releases/com.example.platforms:platforms:1.5.0`
+| `nexusBootstrap` | Comma-separated list of manifest `GAV` coordinates to add plugins and version catalogs | empty | com.example:bootstrap:1.0.0, com.example.platforms:platforms:1.5.0
 | `nexusReleasesRepo` | Releases repo id for `ws.gross.private-repo-publish` plugin | `releases` |
 | `nexusSnapshotsRepo` | Snapshots repo id for `ws.gross.private-repo-publish` plugin | `snapshots` |
 | `nexusReleaseVersionRegex` | Regex to determine if version is release | `\d+\.\d+(?:\.\d+)?(?:-rc\.\d+)?` |
@@ -68,7 +68,7 @@ pluginManagement {
   plugins {
     // Bootstrap manifest artifacts contains properties file with comma-separated plugin ids (`ids` field) and `version`.
     // So for manifest:
-    //   ids = com.example.first, com.example.second
+    //   pluginIds = com.example.first, com.example.second
     //   version = 1.2
     id("com.example.first") version("1.2")
     id("com.example.second") version("1.2")

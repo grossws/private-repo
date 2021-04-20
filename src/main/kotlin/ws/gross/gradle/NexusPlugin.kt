@@ -138,9 +138,9 @@ internal class NexusPluginImpl : Plugin<Settings> {
       .followRedirects(HttpClient.Redirect.NORMAL)
       .build()
 
-    val nexusPrivatePluginsBootstrap: String? by settings
-    nexusPrivatePluginsBootstrap ?: return
-    val bootstrapPlugins = nexusPrivatePluginsBootstrap!!.split(',').map { it.trim() }
+    val nexusBootstrap: String? by settings
+    nexusBootstrap ?: return
+    val bootstrapPlugins = nexusBootstrap!!.split(',').map { it.trim() }
     logger.info("Add bootstrap plugins ${bootstrapPlugins.joinToString(", ")}")
 
     for (bootstrapPlugin in bootstrapPlugins) {
@@ -154,7 +154,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
       val bootstrap = Bootstrap.parse(cached) ?: httpClient.fetchMeta(metaUrl, cached)
       if (bootstrap == null) {
-        logger.warn("Failed to load nexusPrivatePluginsBootstrap meta from $metaUrl")
+        logger.warn("Failed to load nexusBootstrap meta from $metaUrl")
         return
       }
 
@@ -188,11 +188,11 @@ internal class NexusPluginImpl : Plugin<Settings> {
         if (!Files.exists(path)) return null
 
         val props = Properties().apply { path.toFile().reader().use { load(it) } }
-        val ids = props.getProperty("ids").split(',').map { it.trim() }
+        val ids = props.getProperty("pluginIds").split(',').map { it.trim() }
         val version = props.getProperty("version")
 
         if (ids.isEmpty() || version.isEmpty()) {
-          logger.info("nexusPrivatePluginsBootstrap cache invalid")
+          logger.info("nexusBootstrap cache invalid")
           return null
         }
         return Bootstrap(ids, version)

@@ -48,6 +48,12 @@ fun MavenArtifactRepository.withAuth() {
 internal fun String?.parseList(): List<String> =
   (this ?: "").split(',').map { it.trim() }.filterNot { it.isEmpty() }
 
+internal fun String.parsePair(): Pair<String, String> =
+  split('=', limit = 2).map { it.trim() }.let { it[0] to it[1] }
+
+internal fun String?.parseMap(): Map<String, String> =
+  parseList().associate { it.parsePair() }
+
 internal fun String?.parseSwitch(defaultValue: Boolean): Boolean =
   when ((this ?: defaultValue.toString()).trim().toLowerCase()) {
     "true" -> true
