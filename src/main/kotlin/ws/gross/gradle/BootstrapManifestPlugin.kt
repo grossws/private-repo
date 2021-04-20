@@ -61,6 +61,7 @@ class BootstrapManifestPlugin @Inject constructor(private val componentFactory: 
         description = "Generate bootstrap manifest ${manifest.name}"
 
         pluginIds.convention(manifest.pluginIds)
+        catalogIds.convention(manifest.catalogIds)
         version.convention(manifest.version.convention(provider { project.version.toString() }))
         outputFile.convention(manifest.outputDir.file(outputFileName))
       }
@@ -91,6 +92,8 @@ abstract class BootstrapManifestExtension {
 
 abstract class Manifest @Inject constructor(val name: String) {
   abstract val pluginIds: ListProperty<String>
+
+  abstract val catalogIds: MapProperty<String, String>
 
   abstract val version: Property<String>
 

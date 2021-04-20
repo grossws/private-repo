@@ -40,6 +40,7 @@ Configured via gradle properties (e.g. in `~/.gradle/gradle.properties`).
 | `nexusGroupRegexes`| Regexes for groups to exclude when searching Maven Central | derived from `nexusUrl` base domain | `com\\.example(\\..*)?`
 | `nexusDefaultGroupRegex` | Flag to enable generating default group regex from `nexusUrl` | `true` |
 | `nexusBootstrap` | Comma-separated list of manifest `GAV` coordinates to add plugins and version catalogs | empty | com.example:bootstrap:1.0.0, com.example.platforms:platforms:1.5.0
+| `nexusBootstrapCatalogs` | Add version catalogs from bootstrap manifest | `false` |
 | `nexusReleasesRepo` | Releases repo id for `ws.gross.private-repo-publish` plugin | `releases` |
 | `nexusSnapshotsRepo` | Snapshots repo id for `ws.gross.private-repo-publish` plugin | `snapshots` |
 | `nexusReleaseVersionRegex` | Regex to determine if version is release | `\d+\.\d+(?:\.\d+)?(?:-rc\.\d+)?` |

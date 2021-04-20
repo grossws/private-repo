@@ -28,6 +28,7 @@ import java.util.Properties
 
 data class Bootstrap(
   val pluginIds: List<String>,
+  val catalogs: Map<String, String>,
   val version: String
 ) {
   companion object {
@@ -58,6 +59,7 @@ data class Bootstrap(
       val props = Properties().apply { file.reader().use { load(it) } }
       return Bootstrap(
         pluginIds = props.getProperty("pluginIds").parseList(),
+        catalogs = props.getProperty("catalogIds").parseMap(),
         version = props.getProperty("version")
       )
     }

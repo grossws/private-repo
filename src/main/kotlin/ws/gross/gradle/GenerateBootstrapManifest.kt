@@ -33,6 +33,9 @@ abstract class GenerateBootstrapManifest : DefaultTask() {
   abstract val pluginIds: ListProperty<String>
 
   @get:Input
+  abstract val catalogIds: MapProperty<String, String>
+
+  @get:Input
   abstract val version: Property<String>
 
   @get:OutputFile
@@ -41,12 +44,15 @@ abstract class GenerateBootstrapManifest : DefaultTask() {
   @TaskAction
   fun writeProperties() {
     delegate.setOutputFile(outputFile)
+    val catalogs = catalogIds.get().toList().sortedBy { it.first }
     val plugins = pluginIds.get().sorted()
+    delegate.property("catalogIds", catalogs.joinToString(",") { "${it.first}=${it.second}" })
     delegate.property("pluginIds", plugins.joinToString(","))
     delegate.property("version", version.get())
 
     logger.info("""
     |Writing manifest to ${outputFile.get()}:
+    |  catalogIgs = ${catalogs.joinToString(" \\\n|    ")}
     |  pluginIds = ${plugins.joinToString(" \\\n|    ")}
     |  version = ${version.get()}
     """.trimMargin())

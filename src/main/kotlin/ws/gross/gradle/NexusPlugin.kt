@@ -123,6 +123,14 @@ internal class NexusPluginImpl : Plugin<Settings> {
       pluginManagement.plugins {
         bootstrap.pluginIds.forEach { id(it) version bootstrap.version }
       }
+      if (bootstrapCatalogs) {
+        enableFeaturePreview("VERSION_CATALOGS")
+        dependencyResolutionManagement.versionCatalogs {
+          bootstrap.catalogs.forEach { (alias, dependencyNotation) ->
+            create(alias) { from(dependencyNotation) }
+          }
+        }
+      }
     }
   }
 
