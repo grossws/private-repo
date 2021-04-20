@@ -16,35 +16,6 @@
 
 package ws.gross.gradle
 
-import org.gradle.api.Action
-import org.gradle.api.artifacts.dsl.RepositoryHandler
-import org.gradle.api.artifacts.repositories.ArtifactRepository
-import org.gradle.api.artifacts.repositories.MavenArtifactRepository
-import org.gradle.api.artifacts.repositories.PasswordCredentials
-import org.gradle.authentication.http.BasicAuthentication
-import org.gradle.kotlin.dsl.*
-import java.net.URI
-
-internal class RepoHelper(val baseUrl: String) {
-  fun repoUrl(repoPath: String) = "$baseUrl/repository/$repoPath"
-}
-
-internal fun RepositoryHandler.findOrCreateNexusRepo(
-  rh: RepoHelper,
-  repoName: String,
-  repoPath: String,
-  configuration: Action<in MavenArtifactRepository> = Action {}
-): ArtifactRepository = findByName(repoName) ?: maven {
-  name = repoName
-  url = URI.create(rh.repoUrl(repoPath))
-  configuration.execute(this)
-}
-
-fun MavenArtifactRepository.withAuth() {
-  credentials(PasswordCredentials::class.java)
-  authentication.create<BasicAuthentication>("basic")
-}
-
 internal fun String?.parseList(): List<String> =
   (this ?: "").split(',').map { it.trim() }.filterNot { it.isEmpty() }
 
@@ -53,15 +24,3 @@ internal fun String.parsePair(): Pair<String, String> =
 
 internal fun String?.parseMap(): Map<String, String> =
   parseList().associate { it.parsePair() }
-
-internal fun String?.parseSwitch(defaultValue: Boolean): Boolean =
-  when ((this ?: defaultValue.toString()).trim().toLowerCase()) {
-    "true" -> true
-    "on" -> true
-    "false" -> false
-    "off" -> false
-    else -> {
-      throw IllegalArgumentException("can't parse $this to boolean: use true/false or on/off")
-    }
-  }
-

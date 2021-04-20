@@ -16,25 +16,16 @@
 
 package ws.gross.gradle
 
-import org.gradle.api.GradleException
 import org.gradle.api.Plugin
-import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
+import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.PluginInstantiationException
+import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.*
 import org.gradle.util.GradleVersion
-import java.net.Authenticator
-import java.net.PasswordAuthentication
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.Properties
 
 class NexusPlugin : Plugin<Settings> {
   override fun apply(settings: Settings) {
@@ -46,91 +37,85 @@ class NexusPlugin : Plugin<Settings> {
   }
 }
 
+@Suppress("UnstableApiUsage")
 internal class NexusPluginImpl : Plugin<Settings> {
   companion object {
-    const val NEXUS_REPO_NAME = "nexus"
-    const val GRADLE_RELEASES_REPO_NAME = "nexusReleasesGradle"
-    const val GRADLE_SNAPSHOTS_REPO_NAME = "nexusSnapshotsGradle"
-
     private val logger: Logger = Logging.getLogger(NexusPlugin::class.java)
   }
 
-  private lateinit var rh: RepoHelper
+  private lateinit var conf: NexusConfiguration
+  private lateinit var target: Provider<String>
 
   override fun apply(settings: Settings) {
-    val nexusUrl: String? by settings
-    rh = RepoHelper(nexusUrl ?: throw PluginInstantiationException("nexusUrl should be defined in gradle properties"))
-    logger.info("Configuring private repo with nexusUrl $nexusUrl")
+    conf = NexusConfiguration.from(settings.providers)
+    target = settings.providers.gradleProperty("nexusTarget")
+      .forUseAtConfigurationTime()
+      .orElse("public")
 
     settings.configurePluginRepos()
     settings.configureRepos()
 
-    settings.addPrivatePluginsBootstrap()
+    settings.bootstrap()
   }
 
   private fun Settings.configurePluginRepos() {
     pluginManagement.repositories {
       logger.info("Adding gradlePluginPortal to pluginManagement")
       gradlePluginPortal()
-
-      logger.info("Adding $GRADLE_RELEASES_REPO_NAME(${rh.repoUrl("gradle")}) to pluginManagement")
-      findOrCreateNexusRepo(rh, GRADLE_RELEASES_REPO_NAME, "gradle") {
-        mavenContent { releasesOnly() }
-      }
-
-      logger.info("Adding $GRADLE_SNAPSHOTS_REPO_NAME(${rh.repoUrl("gradle/dev")}) to pluginManagement")
-      findOrCreateNexusRepo(rh, GRADLE_SNAPSHOTS_REPO_NAME, "gradle/dev")
+      addPrivateGradleRepos()
     }
   }
 
-  @Suppress("UnstableApiUsage")
   private fun Settings.configureRepos() {
-    val nexusGroups: String? by settings
-    val groups = nexusGroups.parseList()
+    val groups = providers.gradleProperty("nexusGroups")
+      .forUseAtConfigurationTime()
+      .map { it.parseList() }.orElse(listOf()).get()
+    val groupRegexes = providers.gradleProperty("nexusGroupRegexes")
+      .forUseAtConfigurationTime()
+      .map { it.parseList() }.orElse(conf.defaultGroupRegex).get()
 
-    val nexusGroupRegexes: String? by settings
-    val regexes = nexusGroupRegexes.parseList()
+    dependencyResolutionManagement.repositories {
+      addMavenCentral(withoutGroups = groups, withoutGroupRegexes = groupRegexes)
 
-    val nexusDefaultGroupRegex: String? by this
-    val defaultRegex = if (nexusDefaultGroupRegex.parseSwitch(true)) {
-      val url = URI.create(rh.baseUrl)
-      val prefix = url.host.split('.').asReversed().take(2).joinToString(".")
-      prefix.replace(".", "\\.") + "(\\..*)?"
-    } else {
-      null
-    }
+      val repo = conf.repoUrl(target)
+      val exclusive = providers.gradleProperty("nexusExclusive")
+        .forUseAtConfigurationTime()
+        .map { it.toBoolean() }.orElse(false).get()
 
-    logger.info("Adding mavenCentral to dependencyResolutionManagement")
-    dependencyResolutionManagement.repositories.mavenCentral {
-      content {
-        groups.forEach { excludeGroup(it) }
-        regexes.forEach { excludeGroupByRegex(it) }
-        if (defaultRegex != null && groups.isEmpty() && regexes.isEmpty()) {
-          excludeGroupByRegex(defaultRegex)
+      if (exclusive) {
+        logger.info("Adding exclusive $NEXUS_REPO_NAME(${repo.get()} to dependencyResolutionManagement")
+        exclusiveContent {
+          forRepository {
+            maven(NEXUS_REPO_NAME, repo, conf.credentials)
+          }
+
+          filter {
+            groups.forEach { includeGroup(it) }
+            groupRegexes.forEach { includeGroupByRegex(it) }
+          }
         }
+      } else {
+        logger.info("Adding $NEXUS_REPO_NAME(${repo.get()} to dependencyResolutionManagement")
+        maven(NEXUS_REPO_NAME, repo, conf.credentials)
       }
     }
-
-    val nexusTarget: String? by settings
-    val nexusExclusive: String? by settings
-    val exclusive = nexusExclusive.parseSwitch(false)
-    configureNexusRepo(nexusTarget ?: "public", groups, regexes, defaultRegex, exclusive)
   }
 
-  private fun Settings.addPrivatePluginsBootstrap() {
-    val nexusBootstrap: String? by settings
-    nexusBootstrap ?: return
-    val bootstrapManifests = nexusBootstrap!!.split(',').map { it.trim() }
-    logger.info("Add bootstrap plugins ${bootstrapManifests.joinToString(", ")}")
+  private fun Settings.bootstrap() {
+    val bootstrapManifests = providers.gradleProperty("nexusBootstrap")
+      .forUseAtConfigurationTime()
+      .orElse("").map { it.parseList() }.get()
+    val bootstrapCatalogs = providers.gradleProperty("nexusBootstrapCatalogs")
+      .forUseAtConfigurationTime()
+      .map { it.toBoolean() }.orElse(false).get()
 
-    settings.buildscript.repositories {
-      logger.info("Adding $GRADLE_RELEASES_REPO_NAME(${rh.repoUrl("gradle")}) to pluginManagement")
-      findOrCreateNexusRepo(rh, GRADLE_RELEASES_REPO_NAME, "gradle") {
-        mavenContent { releasesOnly() }
-      }
+    if (bootstrapManifests.isEmpty()) {
+      return
+    }
 
-      logger.info("Adding $GRADLE_SNAPSHOTS_REPO_NAME(${rh.repoUrl("gradle/dev")}) to pluginManagement")
-      findOrCreateNexusRepo(rh, GRADLE_SNAPSHOTS_REPO_NAME, "gradle/dev")
+    buildscript.repositories {
+      addPrivateGradleRepos()
+      maven(BOOTSTRAP_NEXUS_NAME, conf.repoUrl(target), conf.credentials)
     }
 
     bootstrapManifests.forEach { manifest ->
@@ -141,32 +126,28 @@ internal class NexusPluginImpl : Plugin<Settings> {
     }
   }
 
-  @Suppress("UnstableApiUsage")
-  private fun Settings.configureNexusRepo(
-    repoPath: String,
-    groups: List<String>,
-    regexes: List<String>,
-    defaultRegex: String?,
-    exclusive: Boolean,
-  ) = dependencyResolutionManagement.repositories {
-    if (exclusive) {
-      logger.info("Adding exclusive $NEXUS_REPO_NAME(${rh.repoUrl(repoPath)}) to dependencyResolutionManagement")
-      exclusiveContent {
-        forRepository {
-          findOrCreateNexusRepo(rh, NEXUS_REPO_NAME, repoPath, MavenArtifactRepository::withAuth)
-        }
+  private fun RepositoryHandler.addPrivateGradleRepos() {
+    val releasesRepo = conf.repoUrl("gradle")
+    logger.info("Adding $GRADLE_RELEASES_REPO_NAME(${releasesRepo.get()}) to pluginManagement")
+    maven(GRADLE_RELEASES_REPO_NAME, releasesRepo) {
+      mavenContent { releasesOnly() }
+    }
 
-        filter {
-          groups.forEach { includeGroup(it) }
-          regexes.forEach { includeGroupByRegex(it) }
-          if (defaultRegex != null && groups.isEmpty() && regexes.isEmpty()) {
-            includeGroupByRegex(defaultRegex)
-          }
-        }
+    val snapshotsRepo = conf.repoUrl("gradle/dev")
+    logger.info("Adding $GRADLE_SNAPSHOTS_REPO_NAME(${snapshotsRepo.get()}) to pluginManagement")
+    maven(GRADLE_SNAPSHOTS_REPO_NAME, snapshotsRepo)
+  }
+
+  private fun RepositoryHandler.addMavenCentral(
+    withoutGroups: List<String> = listOf(),
+    withoutGroupRegexes: List<String> = listOf()
+  ) {
+    logger.info("Adding mavenCentral to dependencyResolutionManagement")
+    findByName(DEFAULT_MAVEN_CENTRAL_REPO_NAME) ?: mavenCentral {
+      content {
+        withoutGroups.forEach { excludeGroup(it) }
+        withoutGroupRegexes.forEach { excludeGroupByRegex(it) }
       }
-    } else {
-      logger.info("Adding $NEXUS_REPO_NAME(${rh.repoUrl(repoPath)}) to dependencyResolutionManagement")
-      findOrCreateNexusRepo(rh, NEXUS_REPO_NAME, repoPath, MavenArtifactRepository::withAuth)
     }
   }
 }

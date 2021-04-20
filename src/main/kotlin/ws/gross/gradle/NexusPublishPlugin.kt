@@ -16,47 +16,27 @@
 
 package ws.gross.gradle
 
-import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.repositories.MavenArtifactRepository
-import org.gradle.api.plugins.PluginInstantiationException
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
-import org.gradle.authentication.http.BasicAuthentication
 import org.gradle.kotlin.dsl.*
 
 class NexusPublishPlugin : Plugin<Project> {
-  companion object {
-    const val RELEASES_REPO_NAME = "nexusReleases"
-    const val SNAPSHOTS_REPO_NAME = "nexusSnapshots"
-  }
-
-  private lateinit var rh: RepoHelper
+  private lateinit var conf: NexusConfiguration
 
   override fun apply(project: Project): Unit = project.run {
-    plugins.apply("maven-publish")
-
-    val nexusUrl: String? by project
-    rh = RepoHelper(nexusUrl ?: throw PluginInstantiationException("nexusUrl should be defined in gradle properties"))
-
+    pluginManager.apply("maven-publish")
     val publishing = the<PublishingExtension>()
+
+    conf = NexusConfiguration.from(project.providers)
+
+    val releasesRepo = providers.gradleProperty("nexusReleasesRepo").orElse("releases")
+    val snapshotsRepo = providers.gradleProperty("nexusSnapshotsRepo").orElse("snapshots")
+
     publishing.repositories {
-      val nexusUsername: String by project
-      val nexusPassword: String by project
-      val withAuth: Action<in MavenArtifactRepository> = Action {
-        authentication.create<BasicAuthentication>("basic")
-        credentials {
-          username = nexusUsername
-          password = nexusPassword
-        }
-      }
-
-      val nexusReleasesRepo: String? by project
-      findOrCreateNexusRepo(rh, RELEASES_REPO_NAME, nexusReleasesRepo ?: "releases", withAuth)
-
-      val nexusSnapshotsRepo: String? by project
-      findOrCreateNexusRepo(rh, SNAPSHOTS_REPO_NAME, nexusSnapshotsRepo ?: "snapshots", withAuth)
+      maven(RELEASES_REPO_NAME, conf.repoUrl(releasesRepo), conf.credentials)
+      maven(SNAPSHOTS_REPO_NAME, conf.repoUrl(snapshotsRepo), conf.credentials)
     }
 
     tasks.withType<PublishToMavenRepository>().configureEach {
