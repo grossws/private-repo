@@ -51,18 +51,19 @@ CAUTION: `\` and `:` in `gradle.properties` requires escaping, so you have to us
 [source,kotlin]
 ----
 pluginManagement {
-  gradlePluginPortal()
+  repositories {
+    gradlePluginPortal()
 
-  maven {
-    name = "nexusReleasesGradle"
-    url = uri("$nexusUrl/repository/gradle")
-    mavenContent { releasesOnly() }
-  }
+    maven {
+      name = "nexusReleasesGradle"
+      url = uri("$nexusUrl/repository/gradle")
+      mavenContent { releasesOnly() }
+    }
 
-  maven {
-    name = "nexusSnapshotsGradle"
-    url = uri("$nexusUrl/repository/gradle/dev")
-    mavenContent { snapshotsOnly() }
+    maven {
+      name = "nexusSnapshotsGradle"
+      url = uri("$nexusUrl/repository/gradle/dev")
+    }
   }
 
   plugins {
