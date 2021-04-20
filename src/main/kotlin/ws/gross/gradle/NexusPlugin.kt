@@ -66,7 +66,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
     settings.configureRepos()
 
     settings.addPrivatePluginsBootstrap()
-    settings.addNexusPublishPlugin()
   }
 
   private fun Settings.configurePluginRepos() {
@@ -116,13 +115,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
     val nexusExclusive: String? by settings
     val exclusive = nexusExclusive.parseSwitch(false)
     configureNexusRepo(nexusTarget ?: "public", groups, regexes, defaultRegex, exclusive)
-  }
-
-  private fun Settings.addNexusPublishPlugin() {
-    val version = NexusPlugin::class.java.`package`.implementationVersion
-    pluginManagement.plugins {
-      id("ws.gross.private-repo-publish") version (version)
-    }
   }
 
   private fun Settings.addPrivatePluginsBootstrap() {
