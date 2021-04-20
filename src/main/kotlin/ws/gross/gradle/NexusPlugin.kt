@@ -127,7 +127,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
         enableFeaturePreview("VERSION_CATALOGS")
         dependencyResolutionManagement.versionCatalogs {
           bootstrap.catalogs.forEach { (alias, dependencyNotation) ->
-            create(alias) { from(dependencyNotation) }
+            create(alias) { from("$dependencyNotation:${bootstrap.version}") }
           }
         }
       }
