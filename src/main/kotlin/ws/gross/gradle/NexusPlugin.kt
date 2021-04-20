@@ -118,76 +118,25 @@ internal class NexusPluginImpl : Plugin<Settings> {
   }
 
   private fun Settings.addPrivatePluginsBootstrap() {
-    val nexusUsername: String by settings
-    val nexusPassword: String by settings
-    val httpClient = HttpClient.newBuilder()
-      .authenticator(object : Authenticator() {
-        override fun getPasswordAuthentication(): PasswordAuthentication {
-          logger.info("requested password auth")
-          return PasswordAuthentication(nexusUsername, nexusPassword.toCharArray())
-        }
-      })
-      .followRedirects(HttpClient.Redirect.NORMAL)
-      .build()
-
     val nexusBootstrap: String? by settings
     nexusBootstrap ?: return
-    val bootstrapPlugins = nexusBootstrap!!.split(',').map { it.trim() }
-    logger.info("Add bootstrap plugins ${bootstrapPlugins.joinToString(", ")}")
+    val bootstrapManifests = nexusBootstrap!!.split(',').map { it.trim() }
+    logger.info("Add bootstrap plugins ${bootstrapManifests.joinToString(", ")}")
 
-    for (bootstrapPlugin in bootstrapPlugins) {
-      val repoId = bootstrapPlugin.substringBeforeLast('/', "")
-      val components = bootstrapPlugin.substringAfterLast('/').split(':')
-      require(components.size == 3) { "bootstrap plugins should be in group:module:version notation" }
-      val (group, module, version) = components
-
-      val cached = Paths.get("$settingsDir/.gradle/${group}.${module}-$version.properties")
-      val metaUrl = URI.create("${rh.repoUrl(repoId.ifEmpty { "gradle" })}/${metaMavenPath(group, module, version)}")
-
-      val bootstrap = Bootstrap.parse(cached) ?: httpClient.fetchMeta(metaUrl, cached)
-      if (bootstrap == null) {
-        logger.warn("Failed to load nexusBootstrap meta from $metaUrl")
-        return
+    settings.buildscript.repositories {
+      logger.info("Adding $GRADLE_RELEASES_REPO_NAME(${rh.repoUrl("gradle")}) to pluginManagement")
+      findOrCreateNexusRepo(rh, GRADLE_RELEASES_REPO_NAME, "gradle") {
+        mavenContent { releasesOnly() }
       }
 
+      logger.info("Adding $GRADLE_SNAPSHOTS_REPO_NAME(${rh.repoUrl("gradle/dev")}) to pluginManagement")
+      findOrCreateNexusRepo(rh, GRADLE_SNAPSHOTS_REPO_NAME, "gradle/dev")
+    }
+
+    bootstrapManifests.forEach { manifest ->
+      val bootstrap = Bootstrap.from(settings, manifest)
       pluginManagement.plugins {
-        bootstrap.ids.forEach { id(it) version (bootstrap.version) }
-      }
-    }
-  }
-
-  private fun HttpClient.fetchMeta(metaUrl: URI, destinationPath: Path): Bootstrap? {
-    val req = HttpRequest.newBuilder(metaUrl).GET().build()
-    val resp = send(req, HttpResponse.BodyHandlers.ofFile(destinationPath))
-    logger.debug("Fetching bootstrap meta from $metaUrl : got ${resp.statusCode()}")
-
-    if (resp.statusCode() != 200) {
-      throw GradleException("Failed to download ${resp.uri()}: $resp")
-    }
-
-    return Bootstrap.parse(destinationPath)
-  }
-
-  private fun metaMavenPath(group: String, module: String, version: String) =
-    "${group.replace('.', '/')}/$module/$version/$module-$version.properties"
-
-  data class Bootstrap(val ids: List<String>, val version: String) {
-    companion object {
-      private val logger: Logger = Logging.getLogger(Bootstrap::class.java)
-
-      fun parse(path: Path?): Bootstrap? {
-        path ?: return null
-        if (!Files.exists(path)) return null
-
-        val props = Properties().apply { path.toFile().reader().use { load(it) } }
-        val ids = props.getProperty("pluginIds").split(',').map { it.trim() }
-        val version = props.getProperty("version")
-
-        if (ids.isEmpty() || version.isEmpty()) {
-          logger.info("nexusBootstrap cache invalid")
-          return null
-        }
-        return Bootstrap(ids, version)
+        bootstrap.pluginIds.forEach { id(it) version bootstrap.version }
       }
     }
   }
