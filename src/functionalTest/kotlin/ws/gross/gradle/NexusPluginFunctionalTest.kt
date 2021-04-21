@@ -28,6 +28,8 @@ import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRA
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.MAVEN_CENTRAL_URL
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.*
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.io.File
 
 class NexusPluginFunctionalTest {
@@ -42,7 +44,7 @@ class NexusPluginFunctionalTest {
   inner class Prerequisites {
     @Test
     fun `fails if old gradle`() {
-      val result = createRunner(projectDir).withGradleVersion("6.7").buildAndFail()
+      val result = createRunner(projectDir, "6.7").buildAndFail()
 
       assertThat(result.output).contains("Only Gradle 6.8+ supported")
     }
@@ -59,9 +61,10 @@ class NexusPluginFunctionalTest {
 
   @Nested
   inner class NormalUse {
-    @Test
-    fun `sane defaults`() {
-      val result = createRunner(projectDir).build()
+    @ParameterizedTest
+    @ValueSource(strings = ["6.8.3", "7.0"])
+    fun `sane defaults`(gradleVersion: String) {
+      val result = createRunner(projectDir, gradleVersion).build()
 
       assertThat(parseOutput(result.output)).repos {
         each {
@@ -124,11 +127,12 @@ class NexusPluginFunctionalTest {
 
   }
 
-  private fun createRunner(projectDir: File) = GradleRunner.create()
+  private fun createRunner(projectDir: File, gradleVersion: String? = null) = GradleRunner.create()
     .forwardOutput()
     .withPluginClasspath()
     .withArguments("clean")
     .withProjectDir(projectDir)
+    .apply { if (gradleVersion != null) withGradleVersion(gradleVersion) }
 
   private fun baseProject(): File {
     val projectDir = File("build/functionalTest")
