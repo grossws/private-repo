@@ -29,7 +29,9 @@ import org.gradle.util.GradleVersion
 
 class NexusPlugin : Plugin<Settings> {
   companion object {
-    val pluginVersion: String = NexusPlugin::class.java.`package`.implementationVersion
+    // decoupling to not fail with obscure message on gradle
+    val pluginVersion: String
+      get() = NexusPluginImpl.pluginVersion
   }
 
   override fun apply(settings: Settings) {
@@ -44,6 +46,7 @@ class NexusPlugin : Plugin<Settings> {
 @Suppress("UnstableApiUsage")
 internal class NexusPluginImpl : Plugin<Settings> {
   companion object {
+    val pluginVersion: String by lazy { NexusPlugin::class.java.`package`.implementationVersion }
     private val logger: Logger = Logging.getLogger(NexusPlugin::class.java)
   }
 
