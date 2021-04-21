@@ -28,6 +28,10 @@ import org.gradle.kotlin.dsl.*
 import org.gradle.util.GradleVersion
 
 class NexusPlugin : Plugin<Settings> {
+  companion object {
+    val pluginVersion: String = NexusPlugin::class.java.`package`.implementationVersion
+  }
+
   override fun apply(settings: Settings) {
     if (GradleVersion.current() < GradleVersion.version("6.8")) {
       throw PluginInstantiationException("Only Gradle 6.8+ supported")
