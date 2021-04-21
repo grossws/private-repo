@@ -58,6 +58,8 @@ configurations[functionalTestSourceSet.runtimeOnlyConfigurationName]
 val functionalTest by tasks.registering(Test::class) {
   testClassesDirs = functionalTestSourceSet.output.classesDirs
   classpath = functionalTestSourceSet.runtimeClasspath
+
+  shouldRunAfter("test")
 }
 
 tasks.withType<Test>().configureEach {
