@@ -94,8 +94,7 @@ class BootstrapManifestBasePlugin @Inject constructor(private val componentFacto
         }
       }
 
-      manifestComponent.addVariantsFromConfiguration(configuration) {
-      }
+      manifestComponent.addVariantsFromConfiguration(configuration) { }
     }
 
     tasks.register("generateManifests") {
