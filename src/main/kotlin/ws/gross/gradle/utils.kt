@@ -16,8 +16,6 @@
 
 package ws.gross.gradle
 
-import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
-
 internal fun String?.parseList(): List<String> =
   (this ?: "").split(',').map { it.trim() }.filterNot { it.isEmpty() }
 
@@ -29,14 +27,12 @@ internal fun String?.parseMap(): Map<String, String> =
 
 val publishTaskNameRegex = """publish([A-Z][\w.]*)PublicationTo([A-Z]\w*)Repository""".toRegex()
 
-data class PublishTaskInfo(val publication: String, val repository: String) {
-  companion object {
-    fun from(task: PublishToMavenRepository): PublishTaskInfo? =
-      publishTaskNameRegex.matchEntire(task.name)?.destructured?.let { (p, r) ->
-        PublishTaskInfo(publication = p.decapitalize(), repository = r.decapitalize())
-      }
+fun String.parsePublishTaskInfo(): PublishTaskInfo? =
+  publishTaskNameRegex.matchEntire(this)?.destructured?.let { (p, r) ->
+    PublishTaskInfo(publication = p.decapitalize(), repository = r.decapitalize())
   }
-}
+
+data class PublishTaskInfo(val publication: String, val repository: String)
 
 val versionRegex = """
   # base version

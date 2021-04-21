@@ -40,7 +40,7 @@ class NexusPublishPlugin : Plugin<Project> {
     }
 
     tasks.withType<PublishToMavenRepository>().configureEach {
-      val repositoryName = PublishTaskInfo.from(this)?.repository ?: return@configureEach
+      val repositoryName = this.name.parsePublishTaskInfo()?.repository ?: return@configureEach
 
       val repos = publishing.repositories
       if (repositoryName in listOf(RELEASES_REPO_NAME, SNAPSHOTS_REPO_NAME)) {
