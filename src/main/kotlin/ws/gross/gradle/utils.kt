@@ -71,5 +71,5 @@ data class VersionInfo(
   val metadata: String?, val feature: String?, val hash: String?
 ) {
   val release: Boolean
-    get() = significant == "final"
+    get() = significant in listOf("final", "rc")
 }
