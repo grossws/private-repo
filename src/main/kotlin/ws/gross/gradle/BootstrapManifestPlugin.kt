@@ -66,15 +66,6 @@ class BootstrapManifestBasePlugin @Inject constructor(private val componentFacto
         outputFileName.convention("$name.properties")
       }
 
-      val configuration = configurations.create(manifest.configurationName) {
-        isCanBeConsumed = true
-        isCanBeResolved = false
-        attributes {
-          attribute(Category.CATEGORY_ATTRIBUTE, objects.named("manifest"))
-        }
-        outgoing.capability("${project.group}:${manifest.name}-manifest:1")
-      }
-
       val task = tasks.register(manifest.generateTaskName, GenerateBootstrapManifest::class.java) {
         group = BasePlugin.BUILD_GROUP
         description = "Generate bootstrap manifest ${manifest.name}"
@@ -85,11 +76,22 @@ class BootstrapManifestBasePlugin @Inject constructor(private val componentFacto
         outputFile.convention(manifest.outputDir.file(outputFileName))
       }
 
-      artifacts.add(configuration.name, task.flatMap { it.outputFile }) {
-        type = "manifest"
-        extension = "properties"
-        classifier = manifest.name
-        this.builtBy(task)
+      val configuration = configurations.create(manifest.configurationName) {
+        isCanBeConsumed = true
+        isCanBeResolved = false
+        attributes {
+          attribute(Category.CATEGORY_ATTRIBUTE, objects.named("manifest"))
+        }
+        outgoing {
+          capability("${project.group}:${project.name}:${project.version}")
+          capability("${project.group}:${manifest.name}-manifest:1")
+          artifact(task.flatMap { it.outputFile }) {
+            type = "manifest"
+            extension = "properties"
+            classifier = manifest.name
+            builtBy(task)
+          }
+        }
       }
 
       manifestComponent.addVariantsFromConfiguration(configuration) {
