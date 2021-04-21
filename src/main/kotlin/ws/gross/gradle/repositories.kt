@@ -17,7 +17,6 @@
 package ws.gross.gradle
 
 import org.gradle.api.Action
-import org.gradle.api.GradleException
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.artifacts.repositories.ArtifactRepository
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
@@ -63,7 +62,7 @@ data class NexusConfiguration(
         credentials = providers.credentials(PasswordCredentials::class, "nexus"),
         defaultGroupRegex = defaultGroupRegex,
         providers = providers,
-      ).also { it.baseUrl.orNull ?: throw GradleException("nexusUrl should be defined in gradle properties") }
+      )
     }
   }
 

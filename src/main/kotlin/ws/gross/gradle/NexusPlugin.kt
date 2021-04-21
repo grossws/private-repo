@@ -16,6 +16,7 @@
 
 package ws.gross.gradle
 
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
 import org.gradle.api.artifacts.dsl.RepositoryHandler
@@ -58,6 +59,8 @@ internal class NexusPluginImpl : Plugin<Settings> {
     target = settings.providers.gradleProperty("nexusTarget")
       .forUseAtConfigurationTime()
       .orElse("public")
+
+    conf.baseUrl.orNull ?: throw GradleException("nexusUrl should be defined in gradle properties")
 
     settings.configurePluginRepos()
     settings.configureRepos()
