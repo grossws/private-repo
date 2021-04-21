@@ -40,13 +40,18 @@ class NexusPublishPlugin : Plugin<Project> {
     }
 
     tasks.withType<PublishToMavenRepository>().configureEach {
+      val repositoryName = PublishTaskInfo.from(this)?.repository ?: return@configureEach
+
       val repos = publishing.repositories
-      onlyIf {
-        val nexusReleaseVersionRegex: String? by project
-        // release repo used for 1.2, 1.2.3, 5.6-rc.7, 5.6.7-rc.8
-        val versionRegex = nexusReleaseVersionRegex ?: """\d+\.\d+(?:\.\d+)?(?:-rc\.\d+)?"""
-        val release = version.toString().matches(versionRegex.toRegex())
-        (repository == repos[RELEASES_REPO_NAME] && release) || (repository == repos[SNAPSHOTS_REPO_NAME] && !release)
+      if (repositoryName in listOf(RELEASES_REPO_NAME, SNAPSHOTS_REPO_NAME)) {
+        onlyIf {
+          val vi = version.toString().parseVersionInfo()
+          vi ?: logger.warn("Can't parse project version $version")
+          vi ?: return@onlyIf false
+
+          (repository == repos[RELEASES_REPO_NAME] && vi.release)
+              || (repository == repos[SNAPSHOTS_REPO_NAME] && !vi.release)
+        }
       }
     }
   }

@@ -16,6 +16,8 @@
 
 package ws.gross.gradle
 
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+
 internal fun String?.parseList(): List<String> =
   (this ?: "").split(',').map { it.trim() }.filterNot { it.isEmpty() }
 
@@ -24,3 +26,54 @@ internal fun String.parsePair(): Pair<String, String> =
 
 internal fun String?.parseMap(): Map<String, String> =
   parseList().associate { it.parsePair() }
+
+val publishTaskNameRegex = """publish([A-Z][\w.]*)PublicationTo([A-Z]\w*)Repository""".toRegex()
+
+data class PublishTaskInfo(val publication: String, val repository: String) {
+  companion object {
+    fun from(task: PublishToMavenRepository): PublishTaskInfo? =
+      publishTaskNameRegex.matchEntire(task.name)?.destructured?.let { (p, r) ->
+        PublishTaskInfo(publication = p.decapitalize(), repository = r.decapitalize())
+      }
+  }
+}
+
+val versionRegex = """
+  # base version
+  (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)
+  (?:
+    # -rc.# and similar
+    -(?<type>dev|milestone|rc)\.(?<iteration>\d+)
+    # dirty repo marker
+    (?:\.(?<dirty>uncommitted))?
+    # metadata block
+    (?:\+(?<metadata>
+      (?:(?<feature>[\w.]+)\.)? # branch name
+      (?<hash>[a-fA-F0-9]+) # commit hash
+    ))?
+  )?
+  """.toRegex(RegexOption.COMMENTS)
+
+fun String.parseVersionInfo(): VersionInfo? = versionRegex.matchEntire(this)?.groups?.let { groups ->
+  VersionInfo(
+    major = groups[1]!!.value.toInt(),
+    minor = groups[2]!!.value.toInt(),
+    patch = groups[3]!!.value.toInt(),
+    significant = groups[4]?.value ?: "final",
+    iteration = groups[5]?.value?.toInt(),
+    dirty = groups[6] != null,
+    metadata = groups[7]?.value,
+    feature = groups[8]?.value,
+    hash = groups[9]?.value
+  )
+}
+
+data class VersionInfo(
+  val major: Int, val minor: Int, val patch: Int?,
+  val significant: String, val iteration: Int?,
+  val dirty: Boolean,
+  val metadata: String?, val feature: String?, val hash: String?
+) {
+  val release: Boolean
+    get() = significant == "final"
+}
