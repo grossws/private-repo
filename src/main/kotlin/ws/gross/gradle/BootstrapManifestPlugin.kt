@@ -86,10 +86,10 @@ class BootstrapManifestBasePlugin @Inject constructor(private val componentFacto
       }
 
       artifacts.add(configuration.name, task.flatMap { it.outputFile }) {
-          type="man1"
-          extension="propertieZ"
-          classifier=manifest.name
-          this.builtBy(task)
+        type = "manifest"
+        extension = "properties"
+        classifier = manifest.name
+        this.builtBy(task)
       }
 
       manifestComponent.addVariantsFromConfiguration(configuration) {
