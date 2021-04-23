@@ -18,6 +18,7 @@ import org.gradle.plugins.ide.idea.model.IdeaModel
 
 plugins {
   kotlin("jvm")
+  idea
 }
 
 apply<org.jetbrains.kotlin.samWithReceiver.gradle.SamWithReceiverGradleSubplugin>()
