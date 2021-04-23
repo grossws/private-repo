@@ -16,6 +16,12 @@
 
 package ws.gross.gradle
 
+import org.gradle.api.Project
+
+inline fun Project.ifNotDslAccessors(block: () -> Unit) {
+  if (project.name != "gradle-kotlin-dsl-accessors") block.invoke()
+}
+
 internal fun String?.parseList(): List<String> =
   (this ?: "").split(',').map { it.trim() }.filterNot { it.isEmpty() }
 
