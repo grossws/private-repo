@@ -52,8 +52,8 @@ gradlePlugin {
 }
 
 pluginBundle {
-  website = "https://github.com/grossws/gradle-private-repo-plugin"
-  vcsUrl = "https://github.com/grossws/gradle-private-repo-plugin.git"
+  website = "https://github.com/grossws/private-repo"
+  vcsUrl = "https://github.com/grossws/private-repo.git"
   tags = listOf("repository", "private-repository", "nexus", "artifactory")
 }
 

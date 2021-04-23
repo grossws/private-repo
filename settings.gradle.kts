@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-rootProject.name = "gradle-private-repo-plugin"
+rootProject.name = "private-repo"
 
 includeBuild("build-logic")
 pluginManagement {
