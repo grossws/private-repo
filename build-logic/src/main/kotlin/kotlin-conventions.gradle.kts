@@ -1,3 +1,5 @@
+import org.gradle.plugins.ide.idea.model.IdeaModel
+
 /*
  * Copyright 2021 Konstantin Gribov
  *
@@ -68,4 +70,19 @@ tasks.withType<Test>().configureEach {
 
 tasks.named("check") {
   dependsOn(functionalTest)
+}
+
+pluginManager.withPlugin("idea") {
+  the<IdeaModel>().module {
+    val kotlinSourceSet = kotlin.sourceSets[functionalTestSourceSet.name]
+
+    testSourceDirs = testSourceDirs + kotlinSourceSet.kotlin.sourceDirectories
+    testResourceDirs = testResourceDirs + kotlinSourceSet.resources.sourceDirectories
+
+    scopes["TEST"]?.apply {
+      val plus = computeIfAbsent("plus") { mutableListOf<Configuration>() }
+      plus.add(configurations[functionalTestSourceSet.compileClasspathConfigurationName])
+      plus.add(configurations[functionalTestSourceSet.runtimeClasspathConfigurationName])
+    }
+  }
 }
