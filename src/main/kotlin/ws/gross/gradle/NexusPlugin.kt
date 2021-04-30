@@ -17,6 +17,7 @@
 package ws.gross.gradle
 
 import org.gradle.api.GradleException
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Plugin
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
 import org.gradle.api.artifacts.dsl.RepositoryHandler
@@ -128,6 +129,10 @@ internal class NexusPluginImpl : Plugin<Settings> {
       maven(BOOTSTRAP_NEXUS_NAME, conf.repoUrl(target), conf.credentials)
     }
 
+    gradle.rootProject {
+      extensions.create("bootstrapManifests", ImportedBootstrapManifestsExtension::class)
+    }
+
     bootstrapManifests.forEach { manifest ->
       val bootstrap = Bootstrap.from(settings, manifest)
       pluginManagement.plugins {
@@ -140,6 +145,9 @@ internal class NexusPluginImpl : Plugin<Settings> {
             create(alias) { from("$dependencyNotation:${bootstrap.version}") }
           }
         }
+      }
+      gradle.rootProject {
+        the<ImportedBootstrapManifestsExtension>().manifests.add(bootstrap)
       }
     }
   }
@@ -168,4 +176,8 @@ internal class NexusPluginImpl : Plugin<Settings> {
       }
     }
   }
+}
+
+abstract class ImportedBootstrapManifestsExtension {
+  abstract val manifests: NamedDomainObjectContainer<Bootstrap>
 }
