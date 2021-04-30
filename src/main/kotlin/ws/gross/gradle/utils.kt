@@ -17,6 +17,7 @@
 package ws.gross.gradle
 
 import org.gradle.api.Project
+import java.util.regex.Pattern
 
 inline fun Project.ifNotDslAccessors(block: () -> Unit) {
   if (project.name != "gradle-kotlin-dsl-accessors") block.invoke()
@@ -40,7 +41,8 @@ fun String.parsePublishTaskInfo(): PublishTaskInfo? =
 
 data class PublishTaskInfo(val publication: String, val repository: String)
 
-val versionRegex = """
+@Suppress("RegExpRepeatedSpace")
+val versionRegex: Pattern = Pattern.compile("""
   # base version
   (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)
   (?:
@@ -54,21 +56,22 @@ val versionRegex = """
       (?<hash>[a-fA-F0-9]+) # commit hash
     ))?
   )?
-  """.toRegex(RegexOption.COMMENTS)
+  """, Pattern.COMMENTS)
 
-fun String.parseVersionInfo(): VersionInfo? = versionRegex.matchEntire(this)?.groups?.let { groups ->
-  VersionInfo(
-    major = groups[1]!!.value.toInt(),
-    minor = groups[2]!!.value.toInt(),
-    patch = groups[3]!!.value.toInt(),
-    significant = groups[4]?.value ?: "final",
-    iteration = groups[5]?.value?.toInt(),
-    dirty = groups[6] != null,
-    metadata = groups[7]?.value,
-    feature = groups[8]?.value,
-    hash = groups[9]?.value
-  )
-}
+fun String.parseVersionInfo(): VersionInfo? = versionRegex.matcher(this).let { if (it.matches()) it else null }
+  ?.run {
+    VersionInfo(
+      major = group("major").toInt(),
+      minor = group("minor").toInt(),
+      patch = group("patch").toInt(),
+      significant = group("type") ?: "final",
+      iteration = group("iteration")?.toInt(),
+      dirty = group("dirty") != null,
+      metadata = group("metadata"),
+      feature = group("feature"),
+      hash = group("hash")
+    )
+  }
 
 data class VersionInfo(
   val major: Int, val minor: Int, val patch: Int?,
