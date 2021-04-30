@@ -135,8 +135,7 @@ class NexusPluginFunctionalTest {
     .apply { if (gradleVersion != null) withGradleVersion(gradleVersion) }
 
   private fun baseProject(): File {
-    val projectDir = File("build/functionalTest")
-
+    val projectDir = File("build/functionalTest/private-repo")
     projectDir.mkdirs()
 
     val d = "$"
@@ -145,16 +144,14 @@ class NexusPluginFunctionalTest {
       import com.fasterxml.jackson.annotation.JsonAutoDetect
       import com.fasterxml.jackson.databind.ObjectMapper
       import org.gradle.api.internal.artifacts.repositories.RepositoryContentDescriptorInternal
-      
+
       buildscript {
         repositories.mavenCentral()
         dependencies.classpath("com.fasterxml.jackson.core:jackson-databind:2.12.2")
       }
-      
-      plugins {
-        id("ws.gross.private-repo")
-      }
-      
+
+      plugins { id("ws.gross.private-repo") }
+
       val mapper = ObjectMapper().setDefaultVisibility(
         JsonAutoDetect.Value.defaultVisibility().withFieldVisibility(JsonAutoDetect.Visibility.ANY)
       )
@@ -167,9 +164,7 @@ class NexusPluginFunctionalTest {
     """.trimIndent())
 
     projectDir.resolve("build.gradle.kts").writeText("""
-      plugins {
-        base
-      }
+      plugins { base }
     """.trimIndent())
 
     projectDir.resolve("gradle.properties").writeText("""

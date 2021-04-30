@@ -53,11 +53,11 @@ internal class NexusPluginImpl : Plugin<Settings> {
   }
 
   private lateinit var conf: NexusConfiguration
-  private lateinit var target: Provider<String>
+  private lateinit var repo: Provider<String>
 
   override fun apply(settings: Settings) {
     conf = NexusConfiguration.from(settings.providers)
-    target = settings.providers.gradleProperty("nexusRepo")
+    repo = settings.providers.gradleProperty("nexusRepo")
       .forUseAtConfigurationTime()
       .orElse("public")
 
@@ -74,7 +74,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
       logger.info("Adding gradlePluginPortal to pluginManagement")
       gradlePluginPortal()
 
-      val repoUrl = conf.repoUrl(target)
+      val repoUrl = conf.repoUrl(repo)
       logger.info("Adding $NEXUS_REPO_NAME(${repoUrl.get()}) to pluginManagement")
       maven(NEXUS_REPO_NAME, repoUrl, conf.credentials)
     }
@@ -89,18 +89,19 @@ internal class NexusPluginImpl : Plugin<Settings> {
       .map { it.parseList() }.orElse(conf.defaultGroupRegex).get()
 
     dependencyResolutionManagement.repositories {
+      logger.info("Adding mavenCentral to dependencyResolutionManagement")
       addMavenCentral(withoutGroups = groups, withoutGroupRegexes = groupRegexes)
 
-      val repo = conf.repoUrl(target)
+      val repoUrl = conf.repoUrl(repo)
       val exclusive = providers.gradleProperty("nexusExclusive")
         .forUseAtConfigurationTime()
         .map { it.toBoolean() }.orElse(false).get()
 
       if (exclusive) {
-        logger.info("Adding exclusive $NEXUS_REPO_NAME(${repo.get()} to dependencyResolutionManagement")
+        logger.info("Adding exclusive $NEXUS_REPO_NAME(${repoUrl.get()} to dependencyResolutionManagement")
         exclusiveContent {
           forRepository {
-            maven(NEXUS_REPO_NAME, repo, conf.credentials)
+            maven(NEXUS_REPO_NAME, repoUrl, conf.credentials)
           }
 
           filter {
@@ -109,8 +110,8 @@ internal class NexusPluginImpl : Plugin<Settings> {
           }
         }
       } else {
-        logger.info("Adding $NEXUS_REPO_NAME(${repo.get()} to dependencyResolutionManagement")
-        maven(NEXUS_REPO_NAME, repo, conf.credentials)
+        logger.info("Adding $NEXUS_REPO_NAME(${repoUrl.get()} to dependencyResolutionManagement")
+        maven(NEXUS_REPO_NAME, repoUrl, conf.credentials)
       }
     }
   }
@@ -128,7 +129,9 @@ internal class NexusPluginImpl : Plugin<Settings> {
     }
 
     buildscript.repositories {
-      maven(BOOTSTRAP_NEXUS_NAME, conf.repoUrl(target), conf.credentials)
+      val repoUrl = conf.repoUrl(repo)
+      logger.info("Adding $NEXUS_REPO_NAME(${repoUrl.get()}) to buildscript resolve bootstrap manifests")
+      maven(BOOTSTRAP_NEXUS_NAME, repoUrl, conf.credentials)
     }
 
     gradle.rootProject {
@@ -162,7 +165,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
     withoutGroups: List<String> = listOf(),
     withoutGroupRegexes: List<String> = listOf()
   ) {
-    logger.info("Adding mavenCentral to dependencyResolutionManagement")
     findByName(DEFAULT_MAVEN_CENTRAL_REPO_NAME) ?: mavenCentral {
       content {
         withoutGroups.forEach { excludeGroup(it) }
