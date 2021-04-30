@@ -73,7 +73,10 @@ internal class NexusPluginImpl : Plugin<Settings> {
     pluginManagement.repositories {
       logger.info("Adding gradlePluginPortal to pluginManagement")
       gradlePluginPortal()
-      addPrivateGradleRepos()
+
+      val repoUrl = conf.repoUrl(target)
+      logger.info("Adding $NEXUS_REPO_NAME(${repoUrl.get()}) to pluginManagement")
+      maven(NEXUS_REPO_NAME, repoUrl, conf.credentials)
     }
   }
 
@@ -125,7 +128,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
     }
 
     buildscript.repositories {
-      addPrivateGradleRepos()
       maven(BOOTSTRAP_NEXUS_NAME, conf.repoUrl(target), conf.credentials)
     }
 
@@ -154,18 +156,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
         the<ManifestsExtension>().manifests.put(manifest.substringBeforeLast(':'), bootstrap)
       }
     }
-  }
-
-  private fun RepositoryHandler.addPrivateGradleRepos() {
-    val releasesRepo = conf.repoUrl("gradle")
-    logger.info("Adding $GRADLE_RELEASES_REPO_NAME(${releasesRepo.get()}) to pluginManagement")
-    maven(GRADLE_RELEASES_REPO_NAME, releasesRepo) {
-      mavenContent { releasesOnly() }
-    }
-
-    val snapshotsRepo = conf.repoUrl("gradle/dev")
-    logger.info("Adding $GRADLE_SNAPSHOTS_REPO_NAME(${snapshotsRepo.get()}) to pluginManagement")
-    maven(GRADLE_SNAPSHOTS_REPO_NAME, snapshotsRepo)
   }
 
   private fun RepositoryHandler.addMavenCentral(

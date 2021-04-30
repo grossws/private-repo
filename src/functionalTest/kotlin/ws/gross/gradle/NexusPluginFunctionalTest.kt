@@ -174,7 +174,9 @@ class NexusPluginFunctionalTest {
 
     projectDir.resolve("gradle.properties").writeText("""
       nexusUrl = https://nexus.example.com
-      
+      nexusUsername = gradle
+      nexusPassword = secret
+
     """.trimIndent())
 
     return projectDir
