@@ -33,8 +33,6 @@ const val NEXUS_REPO_NAME = "nexus"
 const val BOOTSTRAP_NEXUS_NAME = "bootstrapNexus"
 const val RELEASES_REPO_NAME = "nexusReleases"
 const val SNAPSHOTS_REPO_NAME = "nexusSnapshots"
-const val GRADLE_RELEASES_REPO_NAME = "nexusReleasesGradle"
-const val GRADLE_SNAPSHOTS_REPO_NAME = "nexusSnapshotsGradle"
 
 data class NexusConfiguration(
   val baseUrl: Provider<String>,

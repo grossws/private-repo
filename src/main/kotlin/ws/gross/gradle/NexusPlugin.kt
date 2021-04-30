@@ -17,7 +17,6 @@
 package ws.gross.gradle
 
 import org.gradle.api.GradleException
-import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Plugin
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
 import org.gradle.api.artifacts.dsl.RepositoryHandler
@@ -25,6 +24,7 @@ import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.PluginInstantiationException
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.*
 import org.gradle.util.GradleVersion
@@ -130,14 +130,16 @@ internal class NexusPluginImpl : Plugin<Settings> {
     }
 
     gradle.rootProject {
-      extensions.create("bootstrapManifests", ImportedBootstrapManifestsExtension::class)
+      extensions.create("bootstrapManifests", ManifestsExtension::class)
     }
 
     bootstrapManifests.forEach { manifest ->
       val bootstrap = Bootstrap.from(settings, manifest)
+
       pluginManagement.plugins {
         bootstrap.pluginIds.forEach { id(it) version bootstrap.version }
       }
+
       if (bootstrapCatalogs) {
         enableFeaturePreview("VERSION_CATALOGS")
         dependencyResolutionManagement.versionCatalogs {
@@ -146,8 +148,10 @@ internal class NexusPluginImpl : Plugin<Settings> {
           }
         }
       }
+
       gradle.rootProject {
-        the<ImportedBootstrapManifestsExtension>().manifests.add(bootstrap)
+        logger.info("Adding bootstrap manifest $manifest to bootstrapManifests extension in rootProject")
+        the<ManifestsExtension>().manifests.put(manifest.substringBeforeLast(':'), bootstrap)
       }
     }
   }
@@ -178,6 +182,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
   }
 }
 
-abstract class ImportedBootstrapManifestsExtension {
-  abstract val manifests: NamedDomainObjectContainer<Bootstrap>
+abstract class ManifestsExtension {
+  abstract val manifests: MapProperty<String, Bootstrap>
 }
