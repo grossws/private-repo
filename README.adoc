@@ -34,16 +34,20 @@ Configured via gradle properties (e.g. in `~/.gradle/gradle.properties`).
 | `nexusUrl` | Nexus base URL | -- | https://nexus.example.com
 | `nexusUsername` | Nexus user name for repo | -- | deploy-user
 | `nexusPassword` | Nexus user password for read access | -- | some-secret-password
+
 | `nexusRepo` | Nexus repo or group to add | `public` |
+
 | `nexusExclusive` | Use private repo as exclusive for groups and regexes | `false` |
+
 | `nexusGroups` | Groups to exclude from Maven Central | empty | `com.example,org.example`
 | `nexusGroupRegexes`| Regexes for groups to exclude when searching Maven Central | derived from `nexusUrl` base domain | `com\\.example(\\..*)?`
 | `nexusDefaultGroupRegex` | Flag to enable generating default group regex from `nexusUrl` | `true` |
+
 | `nexusBootstrap` | Comma-separated list of manifest `GAV` coordinates to add plugins and version catalogs | empty | com.example:bootstrap:1.0.0, com.example.platforms:platforms:1.5.0
 | `nexusBootstrapCatalogs` | Add version catalogs from bootstrap manifest | `false` |
+
 | `nexusReleasesRepo` | Releases repo id for `ws.gross.private-repo-publish` plugin | `releases` |
 | `nexusSnapshotsRepo` | Snapshots repo id for `ws.gross.private-repo-publish` plugin | `snapshots` |
-| `nexusReleaseVersionRegex` | Regex to determine if version is release | `\d+\.\d+(?:\.\d+)?(?:-rc\.\d+)?` |
 |===
 
 CAUTION: `\` and `:` in `gradle.properties` requires escaping, so you have to use `\\.`/`\:` instead of `\.`/`:`
@@ -51,33 +55,36 @@ CAUTION: `\` and `:` in `gradle.properties` requires escaping, so you have to us
 .Effective additions to settings.gradle.kts
 [source,kotlin]
 ----
+// Bootstrap manifest artifacts contains properties file with comma-separated plugin ids (`pluginIds` field), catalog (name=dependencyNotation pairs) and `version`.
+// for manifest
+//   catalogIds = commonLibs\=com.example.common\:catalog
+//   pluginIds = com.example.first, com.example.second
+//   version = 1.2
 pluginManagement {
   repositories {
     gradlePluginPortal()
 
     maven {
-      name = "nexusReleasesGradle"
-      url = uri("$nexusUrl/repository/gradle")
-      mavenContent { releasesOnly() }
-    }
-
-    maven {
-      name = "nexusSnapshotsGradle"
-      url = uri("$nexusUrl/repository/gradle/dev")
+      name = "nexus"
+      url = uri("$nexusUrl/repository/$nexusRepo")
     }
   }
 
   plugins {
-    // Bootstrap manifest artifacts contains properties file with comma-separated plugin ids (`ids` field) and `version`.
-    // So for manifest:
-    //   pluginIds = com.example.first, com.example.second
-    //   version = 1.2
+    // from manifest
     id("com.example.first") version("1.2")
     id("com.example.second") version("1.2")
   }
 }
 
 dependencyResolutionManagement {
+  versionCatalogs {
+    // for each catalog in manifest catalogIds
+    create("commonLibs") { // from key
+      from("com.example.common:catalog:1.2") // from value and version
+    }
+  }
+
   repositories {
     mavenCentral {
       groups.forEach { excludeGroup(it) }
@@ -88,10 +95,13 @@ dependencyResolutionManagement {
     // when `nexusExclusive` not set or set to false
     maven {
       name = "nexus"
-      url = uri("$nexusUrl/repository/$nexusTarget")
+      url = uri("$nexusUrl/repository/$nexusRepo")
 
-      // by default use `${name}Username` and `${name}Password` to authenticate
-      credentials(PasswordCredentials::class.java)
+      // use `nexusUsername` and `nexusPassword` gradle properties to authenticate
+      credentials {
+        username = "$nexusUsername"
+        password = "$nexusPassword"
+      }
       authentication.create<BasicAuthentication>("basic")
     }
 
@@ -100,10 +110,13 @@ dependencyResolutionManagement {
       forRepository {
         maven {
           name = "nexus"
-          url = uri("$nexusUrl/repository/$nexusTarget")
+          url = uri("$nexusUrl/repository/$nexusRepo")
 
-          // by default use `${name}Username` and `${name}Password` to authenticate
-          credentials(PasswordCredentials::class.java)
+          // use `nexusUsername` and `nexusPassword` gradle properties to authenticate
+          credentials {
+            username = "$nexusUsername"
+            password = "$nexusPassword"
+          }
           authentication.create<BasicAuthentication>("basic")
         }
       }
