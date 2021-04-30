@@ -34,7 +34,7 @@ Configured via gradle properties (e.g. in `~/.gradle/gradle.properties`).
 | `nexusUrl` | Nexus base URL | -- | https://nexus.example.com
 | `nexusUsername` | Nexus user name for repo | -- | deploy-user
 | `nexusPassword` | Nexus user password for read access | -- | some-secret-password
-| `nexusTarget` | Nexus repo or group to add | `public` |
+| `nexusRepo` | Nexus repo or group to add | `public` |
 | `nexusExclusive` | Use private repo as exclusive for groups and regexes | `false` |
 | `nexusGroups` | Groups to exclude from Maven Central | empty | `com.example,org.example`
 | `nexusGroupRegexes`| Regexes for groups to exclude when searching Maven Central | derived from `nexusUrl` base domain | `com\\.example(\\..*)?`

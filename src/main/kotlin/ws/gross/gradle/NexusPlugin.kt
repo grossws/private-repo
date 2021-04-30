@@ -57,7 +57,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
   override fun apply(settings: Settings) {
     conf = NexusConfiguration.from(settings.providers)
-    target = settings.providers.gradleProperty("nexusTarget")
+    target = settings.providers.gradleProperty("nexusRepo")
       .forUseAtConfigurationTime()
       .orElse("public")
 
