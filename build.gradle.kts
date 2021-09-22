@@ -49,6 +49,16 @@ gradlePlugin {
     """.trimIndent()
     implementationClass = "ws.gross.gradle.BootstrapManifestPlugin"
   }
+
+  plugins.create("release-approve") {
+    id = "ws.gross.release-approve"
+    displayName = "Plugin to add approve task for `nebula.release` plugin rc/final release tasks"
+    description = """
+      Gradle plugin which adds approve for rc/final tasks when `nebula.release` plugin present.
+      Use `-Prelease.approve=true` in non-interactive context.
+    """.trimIndent()
+    implementationClass = "ws.gross.gradle.ReleaseApprovePlugin"
+  }
 }
 
 pluginBundle {
