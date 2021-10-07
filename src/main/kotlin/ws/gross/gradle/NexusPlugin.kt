@@ -16,17 +16,21 @@
 
 package ws.gross.gradle
 
+import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.initialization.Settings
+import org.gradle.api.internal.FeaturePreviews
+import org.gradle.api.internal.FeaturePreviews.Feature
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.PluginInstantiationException
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.*
+import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.util.GradleVersion
 
 class NexusPlugin : Plugin<Settings> {
@@ -120,12 +124,19 @@ internal class NexusPluginImpl : Plugin<Settings> {
     val bootstrapManifests = providers.gradleProperty("nexusBootstrap")
       .forUseAtConfigurationTime()
       .orElse("").map { it.parseList() }.get()
+    if (bootstrapManifests.isEmpty()) {
+      return
+    }
+
     val bootstrapCatalogs = providers.gradleProperty("nexusBootstrapCatalogs")
       .forUseAtConfigurationTime()
       .map { it.toBoolean() }.orElse(false).get()
-
-    if (bootstrapManifests.isEmpty()) {
-      return
+    if (bootstrapCatalogs) {
+      logger.warn("""
+        nexusBootstrapCatalogs property is deprecated:
+          use enableFeaturePreview(\"VERSION_CATALOGS\") in settings.gradle.kts
+          to add catalogs from manifests automatically.
+      """.trimIndent())
     }
 
     buildscript.repositories {
@@ -145,14 +156,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
         bootstrap.pluginIds.forEach { id(it) version bootstrap.version }
       }
 
-      if (bootstrapCatalogs) {
-        enableFeaturePreview("VERSION_CATALOGS")
-        dependencyResolutionManagement.versionCatalogs {
-          bootstrap.catalogs.forEach { (alias, dependencyNotation) ->
-            create(alias) { from("$dependencyNotation:${bootstrap.version}") }
-          }
-        }
-      }
+      gradle.settingsEvaluated(AutoBootstrapCatalogsAction(bootstrap))
 
       gradle.rootProject {
         logger.info("Adding bootstrap manifest $manifest to bootstrapManifests extension in rootProject")
@@ -176,4 +180,21 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
 abstract class ManifestsExtension {
   abstract val manifests: MapProperty<String, Bootstrap>
+}
+
+@Suppress("UnstableApiUsage")
+internal class AutoBootstrapCatalogsAction(private val bootstrap: Bootstrap) : Action<Settings> {
+  override fun execute(settings: Settings): Unit = settings.run {
+    val features = serviceOf<FeaturePreviews>()
+    if (Feature.VERSION_CATALOGS.isActive && !features.isFeatureEnabled(Feature.VERSION_CATALOGS)) {
+      // VERSION_CATALOGS is still feature preview but not enabled
+      return@run
+    }
+
+    dependencyResolutionManagement.versionCatalogs {
+      bootstrap.catalogs.forEach { (alias, dependencyNotation) ->
+        create(alias) { from("$dependencyNotation:${bootstrap.version}") }
+      }
+    }
+  }
 }
