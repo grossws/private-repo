@@ -132,6 +132,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
       .forUseAtConfigurationTime()
       .map { it.toBoolean() }.orElse(false).get()
     if (bootstrapCatalogs) {
+      enableFeaturePreview("VERSION_CATALOGS")
       logger.warn("""
         nexusBootstrapCatalogs property is deprecated:
           use enableFeaturePreview("VERSION_CATALOGS") in settings.gradle.kts
