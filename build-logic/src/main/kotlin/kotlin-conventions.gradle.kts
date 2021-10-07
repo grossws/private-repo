@@ -1,5 +1,3 @@
-import org.gradle.plugins.ide.idea.model.IdeaModel
-
 /*
  * Copyright 2021 Konstantin Gribov
  *
@@ -15,6 +13,8 @@ import org.gradle.plugins.ide.idea.model.IdeaModel
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import org.gradle.plugins.ide.idea.model.IdeaModel
 
 plugins {
   kotlin("jvm")
