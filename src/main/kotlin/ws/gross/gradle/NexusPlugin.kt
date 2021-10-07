@@ -134,7 +134,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
     if (bootstrapCatalogs) {
       logger.warn("""
         nexusBootstrapCatalogs property is deprecated:
-          use enableFeaturePreview(\"VERSION_CATALOGS\") in settings.gradle.kts
+          use enableFeaturePreview("VERSION_CATALOGS") in settings.gradle.kts
           to add catalogs from manifests automatically.
       """.trimIndent())
     }
