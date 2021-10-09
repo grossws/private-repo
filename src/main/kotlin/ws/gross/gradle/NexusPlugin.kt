@@ -75,12 +75,15 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
   private fun Settings.configurePluginRepos() {
     pluginManagement.repositories {
-      logger.info("Adding gradlePluginPortal to pluginManagement")
-      gradlePluginPortal()
-
       val repoUrl = conf.repoUrl(repo)
       logger.info("Adding $NEXUS_REPO_NAME(${repoUrl.get()}) to pluginManagement")
       maven(NEXUS_REPO_NAME, repoUrl, conf.credentials)
+
+      logger.info("Adding mavenCentral to pluginManagement")
+      mavenCentral()
+
+      logger.info("Adding gradlePluginPortal to pluginManagement")
+      gradlePluginPortal()
     }
   }
 
