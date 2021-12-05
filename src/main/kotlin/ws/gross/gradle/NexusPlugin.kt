@@ -21,18 +21,14 @@ import org.gradle.api.Plugin
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.initialization.Settings
-import org.gradle.api.internal.artifacts.DependencyResolutionServices
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.PluginInstantiationException
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.*
-import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.util.GradleVersion
-import ws.gross.gradle.extensions.DefaultPrivateRepoExtension
 import ws.gross.gradle.extensions.PrivateRepoExtension
 import ws.gross.gradle.impl.BootstrapManifestAction
-import java.util.function.Supplier
 
 class NexusPlugin : Plugin<Settings> {
   companion object {
@@ -61,19 +57,14 @@ internal class NexusPluginImpl : Plugin<Settings> {
   private lateinit var repo: Provider<String>
 
   override fun apply(settings: Settings): Unit = settings.run {
+    apply<PrivateRepoBasePlugin>()
+
     conf = NexusConfiguration.from(providers)
     repo = providers.gradleProperty("nexusRepo")
       .forUseAtConfigurationTime()
       .orElse("public")
 
     conf.baseUrl.orNull ?: throw GradleException("nexusUrl should be defined in gradle properties")
-
-    extensions.create(
-      PrivateRepoExtension::class,
-      "privateRepo",
-      DefaultPrivateRepoExtension::class,
-      Supplier { serviceOf<DependencyResolutionServices>() }
-    )
 
     configurePluginRepos()
     configureRepos()

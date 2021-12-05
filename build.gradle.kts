@@ -29,6 +29,16 @@ gradlePlugin {
     implementationClass = "ws.gross.gradle.NexusPlugin"
   }
 
+  plugins.create("private-repo-base") {
+    id = "ws.gross.private-repo.base"
+    displayName = "Settings helper plugin to register privateRepo extension"
+    description = """
+      Gradle Settings plugin to register privateRepo extension. 
+      Used by other settings plugins.
+    """.trimIndent()
+    implementationClass = "ws.gross.gradle.PrivateRepoBasePlugin"
+  }
+
   plugins.create("private-repo-publish") {
     id = "ws.gross.private-repo-publish"
     displayName = "Plugin for private repository publication configuration"
