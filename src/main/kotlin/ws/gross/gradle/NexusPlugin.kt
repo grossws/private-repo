@@ -16,22 +16,23 @@
 
 package ws.gross.gradle
 
-import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.initialization.Settings
-import org.gradle.api.internal.FeaturePreviews
-import org.gradle.api.internal.FeaturePreviews.Feature
+import org.gradle.api.internal.artifacts.DependencyResolutionServices
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.PluginInstantiationException
-import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.*
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.util.GradleVersion
+import ws.gross.gradle.extensions.DefaultPrivateRepoExtension
+import ws.gross.gradle.extensions.PrivateRepoExtension
+import ws.gross.gradle.impl.BootstrapManifestAction
+import java.util.function.Supplier
 
 class NexusPlugin : Plugin<Settings> {
   companion object {
@@ -66,6 +67,13 @@ internal class NexusPluginImpl : Plugin<Settings> {
       .orElse("public")
 
     conf.baseUrl.orNull ?: throw GradleException("nexusUrl should be defined in gradle properties")
+
+    settings.extensions.create(
+      PrivateRepoExtension::class,
+      "privateRepo",
+      DefaultPrivateRepoExtension::class,
+      Supplier { settings.serviceOf<DependencyResolutionServices>() }
+    )
 
     settings.configurePluginRepos()
     settings.configureRepos()
@@ -124,11 +132,16 @@ internal class NexusPluginImpl : Plugin<Settings> {
   }
 
   private fun Settings.bootstrap() {
+    val ext = the<PrivateRepoExtension>()
+
     val bootstrapManifests = providers.gradleProperty("nexusBootstrap")
       .forUseAtConfigurationTime()
       .orElse("").map { it.parseList() }.get()
-    if (bootstrapManifests.isEmpty()) {
-      return
+    if (bootstrapManifests.isNotEmpty()) {
+      logger.warn("""
+        nexusBootstrap property is deprecated:
+          use privateRepo extension in settings to add manifests.
+      """.trimIndent())
     }
 
     val bootstrapCatalogs = providers.gradleProperty("nexusBootstrapCatalogs")
@@ -143,21 +156,11 @@ internal class NexusPluginImpl : Plugin<Settings> {
       """.trimIndent())
     }
 
-    buildscript.repositories {
-      val repoUrl = conf.repoUrl(repo)
-      logger.info("Adding $NEXUS_REPO_NAME(${repoUrl.get()}) to buildscript resolve bootstrap manifests")
-      maven(BOOTSTRAP_NEXUS_NAME, repoUrl, conf.credentials)
+    bootstrapManifests.forEachIndexed { i, manifest ->
+      ext.manifests.create("legacy$i") { from(manifest) }
     }
 
-    bootstrapManifests.forEach { manifest ->
-      val bootstrap = Bootstrap.from(settings, manifest)
-
-      pluginManagement.plugins {
-        bootstrap.pluginIds.forEach { id(it) version bootstrap.version }
-      }
-
-      gradle.settingsEvaluated(AutoBootstrapCatalogsAction(bootstrap))
-    }
+    ext.manifests.all { gradle.settingsEvaluated(BootstrapManifestAction(name)) }
   }
 
   private fun RepositoryHandler.addMavenCentral(
@@ -168,23 +171,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
       content {
         withoutGroups.forEach { excludeGroup(it) }
         withoutGroupRegexes.forEach { excludeGroupByRegex(it) }
-      }
-    }
-  }
-}
-
-@Suppress("UnstableApiUsage")
-internal class AutoBootstrapCatalogsAction(private val bootstrap: Bootstrap) : Action<Settings> {
-  override fun execute(settings: Settings): Unit = settings.run {
-    val features = serviceOf<FeaturePreviews>()
-    if (Feature.VERSION_CATALOGS.isActive && !features.isFeatureEnabled(Feature.VERSION_CATALOGS)) {
-      // VERSION_CATALOGS is still feature preview but not enabled
-      return@run
-    }
-
-    dependencyResolutionManagement.versionCatalogs {
-      bootstrap.catalogs.forEach { (alias, dependencyNotation) ->
-        create(alias) { from("$dependencyNotation:${bootstrap.version}") }
       }
     }
   }
