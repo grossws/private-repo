@@ -16,19 +16,21 @@
 
 package ws.gross.gradle
 
-import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.attributes.Category
 import org.gradle.api.component.SoftwareComponentFactory
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.plugins.BasePlugin
-import org.gradle.api.provider.ListProperty
-import org.gradle.api.provider.MapProperty
-import org.gradle.api.provider.Property
+import org.gradle.api.internal.artifacts.DependencyResolutionServices
+import org.gradle.api.internal.artifacts.dependencies.DefaultMutableVersionConstraint
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.kotlin.dsl.*
+import org.gradle.kotlin.dsl.support.serviceOf
+import org.gradle.language.base.plugins.LifecycleBasePlugin
+import ws.gross.gradle.extensions.BootstrapManifestPluginExtension
+import ws.gross.gradle.extensions.DefaultBootstrapManifestPluginExtension
+import ws.gross.gradle.tasks.GenerateBootstrapManifest
+import java.util.function.Supplier
 import javax.inject.Inject
 
 class BootstrapManifestPlugin : Plugin<Project> {
@@ -44,9 +46,54 @@ class BootstrapManifestBasePlugin @Inject constructor(private val componentFacto
   override fun apply(project: Project): Unit = project.run {
     pluginManager.apply("base")
 
-    val ext = extensions.create("bootstrapManifest", BootstrapManifestExtension::class.java)
+    if (group.toString().isEmpty()) {
+      throw IllegalArgumentException("Project group required for ws.gross.bootstrap-manifest plugin")
+    }
 
-    val manifestComponent = componentFactory.adhoc("manifest").also { components.add(it) }
+    val ext = extensions.create(
+      BootstrapManifestPluginExtension::class.java,
+      "manifest",
+      DefaultBootstrapManifestPluginExtension::class.java,
+      Supplier { serviceOf<DependencyResolutionServices>() }
+    ) as DefaultBootstrapManifestPluginExtension
+
+    val projectVersion = provider { project.version.toString() }
+    val manifest = ext.bootstrapManifest.apply {
+      version.convention(projectVersion.map { DefaultMutableVersionConstraint(it).asImmutable() })
+    }
+
+    val task = tasks.register<GenerateBootstrapManifest>("generateBootstrapManifest") {
+      group = LifecycleBasePlugin.BUILD_GROUP
+      description = "Generate bootstrap manifest"
+
+      pluginIds.convention(manifest.pluginIds)
+      catalogIds.convention(manifest.catalogs)
+      version.convention(manifest.version.map { it.displayName })
+      manifestDescription.convention(manifest.description)
+
+      outputFile.convention(layout.buildDirectory.file("${manifest.name}.properties"))
+    }
+
+    val configuration = configurations.create("manifest") {
+      isCanBeConsumed = true
+      isCanBeResolved = false
+      attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named("manifest"))
+      }
+      outgoing {
+        artifact(task.flatMap { it.outputFile }) {
+          type = "manifest"
+          extension = "properties"
+          classifier = manifest.name
+          builtBy(task)
+        }
+      }
+    }
+
+    val manifestComponent = componentFactory.adhoc("manifest").apply {
+      components.add(this)
+      addVariantsFromConfiguration(configuration) {}
+    }
 
     pluginManager.withPlugin("maven-publish") {
       the<PublishingExtension>().publications {
@@ -57,70 +104,8 @@ class BootstrapManifestBasePlugin @Inject constructor(private val componentFacto
       }
     }
 
-    ext.manifests.configureEach {
-      logger.info("Manifest `${this.name}` added")
-
-      val manifest = apply {
-        version.convention(provider { project.version.toString() })
-        outputDir.convention(layout.buildDirectory)
-        outputFileName.convention("$name.properties")
-      }
-
-      val task = tasks.register(manifest.generateTaskName, GenerateBootstrapManifest::class.java) {
-        group = BasePlugin.BUILD_GROUP
-        description = "Generate bootstrap manifest ${manifest.name}"
-
-        pluginIds.convention(manifest.pluginIds)
-        catalogIds.convention(manifest.catalogIds)
-        version.convention(manifest.version.convention(provider { project.version.toString() }))
-        outputFile.convention(manifest.outputDir.file(outputFileName))
-      }
-
-      val configuration = configurations.create(manifest.configurationName) {
-        isCanBeConsumed = true
-        isCanBeResolved = false
-        attributes {
-          attribute(Category.CATEGORY_ATTRIBUTE, objects.named("manifest"))
-        }
-        outgoing {
-          capability("${project.group}:${project.name}:${project.version}")
-          capability("${project.group}:${manifest.name}-manifest:1")
-          artifact(task.flatMap { it.outputFile }) {
-            type = "manifest"
-            extension = "properties"
-            classifier = manifest.name
-            builtBy(task)
-          }
-        }
-      }
-
-      manifestComponent.addVariantsFromConfiguration(configuration) { }
-    }
-
-    tasks.register("generateManifests") {
-      group = BasePlugin.BUILD_GROUP
-      description = "Lifecycle task depending on all generate*Manifest tasks"
-
-      dependsOn(tasks.withType<GenerateBootstrapManifest>())
+    tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
+      dependsOn(task)
     }
   }
-}
-
-abstract class BootstrapManifestExtension {
-  abstract val manifests: NamedDomainObjectContainer<Manifest>
-}
-
-abstract class Manifest @Inject constructor(val name: String) {
-  abstract val pluginIds: ListProperty<String>
-
-  abstract val catalogIds: MapProperty<String, String>
-
-  abstract val version: Property<String>
-
-  abstract val outputDir: DirectoryProperty
-
-  abstract val outputFileName: Property<String>
-
-  val configurationName = "${name}Manifest"
-  val generateTaskName = "generate${name.capitalize()}Manifest"
 }
