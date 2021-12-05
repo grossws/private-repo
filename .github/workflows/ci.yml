@@ -17,54 +17,40 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Setup JDK 11
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v2
         with:
+          distribution: temurin
           java-version: 11
 
-      - name: Check gradle-wrapper
-        uses: gradle/wrapper-validation-action@v1
-
-      - name: Cache
-        uses: burrunan/gradle-cache-action@v1
-        with:
-          job-id: jdk11
-
       - name: Build
-        uses: burrunan/gradle-cache-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
-          job-id: jdk11
-          arguments: build
-          properties: |
-            release.useLastTag=${{ startsWith(github.ref, 'refs/tags/v') }}
-          read-only: ${{ github.ref != 'refs/heads/main' }}
-          execution-only-caches: true
+          arguments: |
+            -Prelease.useLastTag=${{ startsWith(github.ref, 'refs/tags/v') }}
+            build
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Publish release to GitHub Packages
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        uses: burrunan/gradle-cache-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
           job-id: jdk11
           arguments: |
             --init-script .github/publishing-ghp.init.gradle.kts
+            -Prelease.useLastTag=true
             publish
-          properties: |
-            release.useLastTag=true
-          read-only: true
-          execution-only-caches: true
+          cache-read-only: true
         env:
           MAVEN_USERNAME: ${{ github.actor }}
           MAVEN_PASSWORD: ${{ github.token }}
 
       - name: Publish release to Gradle Plugin Portal
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        uses: burrunan/gradle-cache-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
-          job-id: jdk11
           arguments: |
+            -Prelease.useLastTag=true
+            -Pgradle.publish.key=${{ secrets.GRADLE_PLUGIN_PORTAL_KEY }}
+            -Pgradle.publish.secret=${{ secrets.GRADLE_PLUGIN_PORTAL_SECRET }}
             publishPlugin
-          properties: |
-            release.useLastTag=true
-            gradle.publish.key=${{ secrets.GRADLE_PLUGIN_PORTAL_KEY }}
-            gradle.publish.secret=${{ secrets.GRADLE_PLUGIN_PORTAL_SECRET }}
-          read-only: true
-          execution-only-caches: true
+          cache-read-only: true
