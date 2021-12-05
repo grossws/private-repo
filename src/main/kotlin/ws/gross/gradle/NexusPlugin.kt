@@ -27,8 +27,6 @@ import org.gradle.api.plugins.PluginInstantiationException
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.*
 import org.gradle.util.GradleVersion
-import ws.gross.gradle.extensions.PrivateRepoExtension
-import ws.gross.gradle.impl.BootstrapManifestAction
 
 class NexusPlugin : Plugin<Settings> {
   companion object {
@@ -69,7 +67,8 @@ internal class NexusPluginImpl : Plugin<Settings> {
     configurePluginRepos()
     configureRepos()
 
-    bootstrapManifests()
+    // apply only after repositories are configured
+    apply<BootstrapPlugin>()
   }
 
   private fun Settings.configurePluginRepos() {
@@ -120,38 +119,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
         maven(NEXUS_REPO_NAME, repoUrl, conf.credentials)
       }
     }
-  }
-
-  private fun Settings.bootstrapManifests() {
-    val ext = the<PrivateRepoExtension>()
-
-    val bootstrapManifests = providers.gradleProperty("nexusBootstrap")
-      .forUseAtConfigurationTime()
-      .orElse("").map { it.parseList() }.get()
-    if (bootstrapManifests.isNotEmpty()) {
-      logger.warn("""
-        nexusBootstrap property is deprecated:
-          use privateRepo extension in settings to add manifests.
-      """.trimIndent())
-    }
-
-    val bootstrapCatalogs = providers.gradleProperty("nexusBootstrapCatalogs")
-      .forUseAtConfigurationTime()
-      .map { it.toBoolean() }.orElse(false).get()
-    if (bootstrapCatalogs) {
-      enableFeaturePreview("VERSION_CATALOGS")
-      logger.warn("""
-        nexusBootstrapCatalogs property is deprecated:
-          use enableFeaturePreview("VERSION_CATALOGS") in settings.gradle.kts
-          to add catalogs from manifests automatically.
-      """.trimIndent())
-    }
-
-    bootstrapManifests.forEachIndexed { i, manifest ->
-      ext.manifests.create("legacy$i") { from(manifest) }
-    }
-
-    ext.manifests.all { gradle.settingsEvaluated(BootstrapManifestAction(name)) }
   }
 
   private fun RepositoryHandler.addMavenCentral(

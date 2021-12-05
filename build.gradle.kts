@@ -21,7 +21,7 @@ plugins {
 gradlePlugin {
   plugins.create("private-repo") {
     id = "ws.gross.private-repo"
-    displayName = "Plugin for private repository configuration"
+    displayName = "Settings plugin for private repository configuration and bootstrapping"
     description = """
       Gradle Settings plugin to configure dependencyResolutionManagement and pluginManagement
       to use private Nexus/Artifactory repository with auth and convenient defaults.
@@ -37,6 +37,17 @@ gradlePlugin {
       Used by other settings plugins.
     """.trimIndent()
     implementationClass = "ws.gross.gradle.PrivateRepoBasePlugin"
+  }
+
+  plugins.create("private-repo-bootstrap") {
+    id = "ws.gross.private-repo.bootstrap"
+    displayName = "Settings plugin to apply bootstrap manifests"
+    description = """
+      Gradle Settings plugin to apply bootstrap manifests for this build.
+      Resolves and parses manifest, adds plugin declaration to pluginManagement
+      and version catalogs to dependencyResolutionManagement.
+    """.trimIndent()
+    implementationClass = "ws.gross.gradle.BootstrapPlugin"
   }
 
   plugins.create("private-repo-publish") {
