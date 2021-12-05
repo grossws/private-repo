@@ -41,8 +41,9 @@ class BootstrapManifestPlugin : Plugin<Project> {
   }
 }
 
-class BootstrapManifestBasePlugin @Inject constructor(private val componentFactory: SoftwareComponentFactory) :
-  Plugin<Project> {
+class BootstrapManifestBasePlugin @Inject constructor(
+  private val componentFactory: SoftwareComponentFactory
+) : Plugin<Project> {
   override fun apply(project: Project): Unit = project.run {
     pluginManager.apply("base")
 

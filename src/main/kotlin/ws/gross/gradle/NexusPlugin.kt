@@ -60,25 +60,25 @@ internal class NexusPluginImpl : Plugin<Settings> {
   private lateinit var conf: NexusConfiguration
   private lateinit var repo: Provider<String>
 
-  override fun apply(settings: Settings) {
-    conf = NexusConfiguration.from(settings.providers)
-    repo = settings.providers.gradleProperty("nexusRepo")
+  override fun apply(settings: Settings): Unit = settings.run {
+    conf = NexusConfiguration.from(providers)
+    repo = providers.gradleProperty("nexusRepo")
       .forUseAtConfigurationTime()
       .orElse("public")
 
     conf.baseUrl.orNull ?: throw GradleException("nexusUrl should be defined in gradle properties")
 
-    settings.extensions.create(
+    extensions.create(
       PrivateRepoExtension::class,
       "privateRepo",
       DefaultPrivateRepoExtension::class,
-      Supplier { settings.serviceOf<DependencyResolutionServices>() }
+      Supplier { serviceOf<DependencyResolutionServices>() }
     )
 
-    settings.configurePluginRepos()
-    settings.configureRepos()
+    configurePluginRepos()
+    configureRepos()
 
-    settings.bootstrap()
+    bootstrapManifests()
   }
 
   private fun Settings.configurePluginRepos() {
@@ -131,7 +131,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
     }
   }
 
-  private fun Settings.bootstrap() {
+  private fun Settings.bootstrapManifests() {
     val ext = the<PrivateRepoExtension>()
 
     val bootstrapManifests = providers.gradleProperty("nexusBootstrap")
