@@ -149,10 +149,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
       maven(BOOTSTRAP_NEXUS_NAME, repoUrl, conf.credentials)
     }
 
-    gradle.rootProject {
-      extensions.create("bootstrapManifests", ManifestsExtension::class)
-    }
-
     bootstrapManifests.forEach { manifest ->
       val bootstrap = Bootstrap.from(settings, manifest)
 
@@ -161,11 +157,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
       }
 
       gradle.settingsEvaluated(AutoBootstrapCatalogsAction(bootstrap))
-
-      gradle.rootProject {
-        logger.info("Adding bootstrap manifest $manifest to bootstrapManifests extension in rootProject")
-        the<ManifestsExtension>().manifests.put(manifest.substringBeforeLast(':'), bootstrap)
-      }
     }
   }
 
@@ -180,10 +171,6 @@ internal class NexusPluginImpl : Plugin<Settings> {
       }
     }
   }
-}
-
-abstract class ManifestsExtension {
-  abstract val manifests: MapProperty<String, Bootstrap>
 }
 
 @Suppress("UnstableApiUsage")
