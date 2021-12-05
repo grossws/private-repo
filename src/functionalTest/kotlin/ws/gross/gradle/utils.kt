@@ -22,7 +22,9 @@ import assertk.assertions.isNotNull
 import assertk.assertions.prop
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.BuildTask
+import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
+import java.io.File
 
 fun Assert<BuildResult>.task(name: String): Assert<BuildTask> = prop("task[$name]") { it.task(name) }
   .isNotNull()
@@ -33,3 +35,79 @@ fun Assert<BuildTask>.isUpToDate() = prop("outcome") { it.outcome }.isEqualTo(Ta
 fun Assert<BuildTask>.isSkipped() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.SKIPPED)
 fun Assert<BuildTask>.isFromCache() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.FROM_CACHE)
 fun Assert<BuildTask>.isNoSource() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.NO_SOURCE)
+
+fun publishCatalogAndManifest(baseDir: File) {
+  baseDir.mkdirs()
+
+  baseDir.resolve("settings.gradle.kts").writeText("""
+    rootProject.name = "dummy"
+
+    dependencyResolutionManagement.repositories {
+      mavenCentral()
+    }
+  """.trimIndent())
+
+  baseDir.resolve("gradle.properties").writeText("""
+    group = org.example
+    version = 1.0
+  """.trimIndent())
+
+  baseDir.resolve("build.gradle.kts").writeText("""
+    import org.gradle.api.publish.maven.MavenPublication
+
+    plugins {
+      `kotlin-dsl`
+      `version-catalog`
+      id("ws.gross.bootstrap-manifest")
+      `maven-publish`
+    }
+
+    manifest {
+      bootstrapManifest {
+        description.set("dummy manifest")
+        plugin("org.example.dummy")
+        catalog("dummy", "org.example:catalog")
+      }
+    }
+
+    catalog {
+      versionCatalog {
+        alias("guava").to("com.google.guava", "guava").version("31.0.1-jre")
+      }
+    }
+
+    publishing {
+      repositories {
+        maven {
+          name = "DummyRepo"
+          url = uri("../repo")
+        }
+      }
+
+      publications {
+        create<MavenPublication>("catalogMaven") {
+          from(components["versionCatalog"])
+          artifactId = "catalog"
+        }
+
+        named<MavenPublication>("manifestMaven") {
+          artifactId = "manifest"
+        }
+      }
+    }
+  """.trimIndent())
+
+  baseDir.resolve("src/main/kotlin").apply {
+    mkdirs()
+    resolve("org.example.dummy.gradle.kts").writeText("""
+      plugins { base }
+      logger.lifecycle("DUMMY|dummy plugin applied")
+    """.trimIndent())
+  }
+
+  GradleRunner.create()
+    .withProjectDir(baseDir)
+    .withArguments("publish")
+    .withPluginClasspath()
+    .build()
+}
