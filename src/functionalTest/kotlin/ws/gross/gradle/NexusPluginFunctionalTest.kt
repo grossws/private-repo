@@ -33,6 +33,14 @@ import org.junit.jupiter.params.provider.ValueSource
 import java.io.File
 
 class NexusPluginFunctionalTest {
+  companion object {
+    @BeforeAll
+    @JvmStatic
+    fun initRepo() {
+      publishCatalogAndManifest(File("build/functionalTest/fixtures"))
+    }
+  }
+
   lateinit var projectDir: File
 
   @BeforeEach
@@ -127,6 +135,126 @@ class NexusPluginFunctionalTest {
 
   }
 
+  abstract inner class BootstrapManifestsBase {
+    @BeforeEach
+    fun init() {
+      projectDir.resolve("dummy-repo.init.gradle.kts").writeText("""
+        gradle.beforeSettings {
+          // dummy repo to resolve manifest from
+          pluginManagement.repositories.maven {
+            name = "TestMaven"
+            url = uri("../repo")
+          }
+          // dummy repo to resolve catalog from
+          dependencyResolutionManagement.repositories.maven {
+            name = "TestMaven"
+            url = uri("../repo")
+          }
+        }
+      """.trimIndent())
+
+      configureBootstrap()
+    }
+
+    abstract fun configureBootstrap()
+    abstract fun configureBootstrapCatalogs()
+
+    @Test
+    fun `plugins added by bootstrap`() {
+      projectDir.resolve("build.gradle.kts").writeText("""
+        plugins { id("org.example.dummy") }
+      """.trimIndent())
+
+      val result = createRunner(projectDir).build()
+
+      assertThat(result.output)
+        .isNotNull()
+        .contains("DUMMY|dummy plugin applied")
+    }
+
+    @Test
+    fun `catalog added by bootstrap`() {
+      val d = "$"
+      projectDir.resolve("build.gradle.kts").writeText("""
+        plugins { java }
+        dependencies { implementation(dummy.guava) }
+        configurations.compileClasspath.get().resolvedConfiguration.resolvedArtifacts.forEach {
+          logger.lifecycle("DEP|$d{it.name}|$d{it.type}|$d{it.moduleVersion.id.version}|$d{it.file}")
+        }
+      """.trimIndent())
+
+      configureBootstrapCatalogs()
+
+      val result = createRunner(projectDir).build()
+
+      assertThat(result.output)
+        .isNotNull()
+        .contains("DEP|guava|jar|31")
+    }
+
+    protected fun createRunner(projectDir: File): GradleRunner =
+      this@NexusPluginFunctionalTest.createRunner(projectDir)
+        .withArguments("-I", "dummy-repo.init.gradle.kts", "-i", "clean")
+  }
+
+  @Nested
+  inner class BoostrapManifests : BootstrapManifestsBase() {
+    override fun configureBootstrap() {
+      projectDir.resolve("settings.gradle.kts").appendText("""
+        privateRepo {
+          manifests {
+            create("dummy") { from("org.example:manifest:1.0") }
+          }
+        }
+
+      """.trimIndent())
+    }
+
+    override fun configureBootstrapCatalogs() {
+      projectDir.resolve("settings.gradle.kts").appendText("""
+        enableFeaturePreview("VERSION_CATALOGS")
+
+      """.trimIndent())
+    }
+  }
+
+  @Nested
+  inner class BootstrapManifestsLegacy : BootstrapManifestsBase() {
+    override fun configureBootstrap() {
+      projectDir.resolve("gradle.properties").appendText("""
+        nexusBootstrap = org.example:manifest:1.0
+
+      """.trimIndent())
+    }
+
+    override fun configureBootstrapCatalogs() {
+      projectDir.resolve("gradle.properties").appendText("""
+        nexusBootstrapCatalogs = true
+
+      """.trimIndent())
+    }
+
+    @Test
+    fun `using nexusBootstrap property gives deprecation warning`() {
+      val result = createRunner(projectDir).build()
+
+      assertThat(result.output)
+        .isNotNull()
+        .contains("nexusBootstrap property is deprecated")
+    }
+
+    @Test
+    fun `using nexusBootstrapCatalogs property gives deprecation warning`() {
+      configureBootstrapCatalogs()
+
+      val result = createRunner(projectDir).build()
+
+      assertThat(result.output)
+        .isNotNull()
+        .contains("nexusBootstrapCatalogs property is deprecated")
+    }
+  }
+
   private fun createRunner(projectDir: File, gradleVersion: String? = null) = GradleRunner.create()
     .forwardOutput()
     .withPluginClasspath()
@@ -161,10 +289,12 @@ class NexusPluginFunctionalTest {
         r.content { f = (this as RepositoryContentDescriptorInternal).toContentFilter() }
         println("REPO|$d{r.name}|$d{r.url}|$d{mapper.writeValueAsString(f)}")
       }
+
     """.trimIndent())
 
     projectDir.resolve("build.gradle.kts").writeText("""
       plugins { base }
+
     """.trimIndent())
 
     projectDir.resolve("gradle.properties").writeText("""

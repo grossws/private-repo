@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package ws.gross.gradle
+package ws.gross.gradle.tasks
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.WriteProperties
+import org.gradle.api.tasks.*
 
 abstract class GenerateBootstrapManifest : DefaultTask() {
   private val delegate = WriteProperties()
@@ -38,23 +35,30 @@ abstract class GenerateBootstrapManifest : DefaultTask() {
   @get:Input
   abstract val version: Property<String>
 
+  @get:Input
+  @get:Optional
+  abstract val manifestDescription: Property<String>
+
   @get:OutputFile
   abstract val outputFile: RegularFileProperty
 
   @TaskAction
   fun writeProperties() {
     delegate.setOutputFile(outputFile)
+
     val catalogs = catalogIds.get().toList().sortedBy { it.first }
     val plugins = pluginIds.get().sorted()
     delegate.property("catalogIds", catalogs.joinToString(",") { "${it.first}=${it.second}" })
     delegate.property("pluginIds", plugins.joinToString(","))
     delegate.property("version", version.get())
+    manifestDescription.orNull?.let { delegate.property("description", it) }
 
     logger.info("""
     |Writing manifest to ${outputFile.get()}:
     |  catalogIgs = ${catalogs.joinToString(" \\\n|    ")}
     |  pluginIds = ${plugins.joinToString(" \\\n|    ")}
     |  version = ${version.get()}
+    |  description = ${manifestDescription.orElse("<none>")}
     """.trimMargin())
     delegate.writeProperties()
   }
