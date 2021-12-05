@@ -43,7 +43,8 @@ data class NexusConfiguration(
   companion object {
     @Suppress("UnstableApiUsage")
     fun from(providers: ProviderFactory): NexusConfiguration {
-      val baseUrl = providers.gradleProperty("nexusUrl").forUseAtConfigurationTime()
+      val baseUrl = providers.gradleProperty("nexusUrl")
+        .forUseAtConfigurationTime()
 
       val enabled = providers.gradleProperty("nexusDefaultGroupRegex")
         .forUseAtConfigurationTime()
