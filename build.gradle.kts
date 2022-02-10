@@ -93,4 +93,6 @@ dependencies {
   testImplementation("com.fasterxml.jackson.core:jackson-databind")
   testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
   testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-guava")
+  testImplementation("com.github.sya-ri:kgit:1.0.5")
+  testImplementation("nebula.release:nebula.release.gradle.plugin:16.0.0")
 }
