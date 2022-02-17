@@ -49,6 +49,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     jvmTarget = "11"
     languageVersion = "1.4"
     apiVersion = "1.4"
+    javaParameters = true
   }
 }
 
