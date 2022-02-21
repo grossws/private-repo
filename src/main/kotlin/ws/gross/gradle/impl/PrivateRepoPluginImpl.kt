@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Konstantin Gribov
+ * Copyright 2022 Konstantin Gribov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ws.gross.gradle
+package ws.gross.gradle.impl
 
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
@@ -23,39 +23,16 @@ import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
-import org.gradle.api.plugins.PluginInstantiationException
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.*
-import org.gradle.util.GradleVersion
+import ws.gross.gradle.*
 import ws.gross.gradle.ProviderUtil.wrappedForUseAtConfigurationTime
 
-class NexusPlugin : Plugin<Settings> {
-  companion object {
-    // decoupling to not fail with obscure message on gradle
-    val pluginVersion: String
-      get() = NexusPluginImpl.pluginVersion
-
-    private val logger: Logger = Logging.getLogger(NexusPlugin::class.java)
-  }
-
-  override fun apply(settings: Settings) {
-    if (GradleVersion.current() < GradleVersion.version("6.8")) {
-      throw PluginInstantiationException("Only Gradle 6.8+ supported")
-    }
-
-    if (GradleVersion.current() < GradleVersion.version("7.4")) {
-      logger.lifecycle("Gradle 7.4+ recommended with ws.gross.private-repo plugin")
-    }
-
-    settings.apply<NexusPluginImpl>()
-  }
-}
-
 @Suppress("UnstableApiUsage")
-internal class NexusPluginImpl : Plugin<Settings> {
+internal class PrivateRepoPluginImpl : Plugin<Settings> {
   companion object {
-    val pluginVersion: String by lazy { NexusPlugin::class.java.`package`.implementationVersion }
-    private val logger: Logger = Logging.getLogger(NexusPlugin::class.java)
+    val pluginVersion: String by lazy { PrivateRepoPlugin::class.java.`package`.implementationVersion }
+    private val logger: Logger = Logging.getLogger(PrivateRepoPlugin::class.java)
   }
 
   private lateinit var conf: NexusConfiguration

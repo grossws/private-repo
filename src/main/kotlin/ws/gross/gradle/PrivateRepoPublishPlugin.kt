@@ -22,7 +22,7 @@ import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.kotlin.dsl.*
 
-class NexusPublishPlugin : Plugin<Project> {
+class PrivateRepoPublishPlugin : Plugin<Project> {
   private lateinit var conf: NexusConfiguration
 
   override fun apply(project: Project): Unit = project.run {

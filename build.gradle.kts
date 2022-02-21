@@ -26,7 +26,7 @@ gradlePlugin {
       Gradle Settings plugin to configure dependencyResolutionManagement and pluginManagement
       to use private Nexus/Artifactory repository with auth and convenient defaults.
     """.trimIndent()
-    implementationClass = "ws.gross.gradle.NexusPlugin"
+    implementationClass = "ws.gross.gradle.PrivateRepoPlugin"
   }
 
   plugins.create("private-repo-base") {
@@ -57,7 +57,7 @@ gradlePlugin {
       Gradle plugin to configure `maven-publish` plugin with sane default repositories
       to use with private Nexus/Artifactory authenticated repo.
     """.trimIndent()
-    implementationClass = "ws.gross.gradle.NexusPublishPlugin"
+    implementationClass = "ws.gross.gradle.PrivateRepoPublishPlugin"
   }
 
   plugins.create("bootstrap-manifest") {
