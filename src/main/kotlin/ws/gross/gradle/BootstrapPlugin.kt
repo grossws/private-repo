@@ -21,6 +21,7 @@ import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.kotlin.dsl.*
+import ws.gross.gradle.ProviderUtil.wrappedForUseAtConfigurationTime
 import ws.gross.gradle.extensions.PrivateRepoExtension
 import ws.gross.gradle.impl.BootstrapManifestAction
 
@@ -36,7 +37,7 @@ class BootstrapPlugin : Plugin<Settings> {
     val ext = the<PrivateRepoExtension>()
 
     val bootstrapManifests = providers.gradleProperty("nexusBootstrap")
-      .forUseAtConfigurationTime()
+      .wrappedForUseAtConfigurationTime()
       .orElse("").map { it.parseList() }.get()
     if (bootstrapManifests.isNotEmpty()) {
       logger.warn("""
@@ -46,13 +47,13 @@ class BootstrapPlugin : Plugin<Settings> {
     }
 
     val bootstrapCatalogs = providers.gradleProperty("nexusBootstrapCatalogs")
-      .forUseAtConfigurationTime()
+      .wrappedForUseAtConfigurationTime()
       .map { it.toBoolean() }.orElse(false).get()
     if (bootstrapCatalogs) {
-      enableFeaturePreview("VERSION_CATALOGS")
+      if (isVersionCatalogsExperimental()) enableFeaturePreview("VERSION_CATALOGS")
       logger.warn("""
         nexusBootstrapCatalogs property is deprecated:
-          use enableFeaturePreview("VERSION_CATALOGS") in settings.gradle.kts
+          use either Gradle 7.4+ or enableFeaturePreview("VERSION_CATALOGS") in settings.gradle.kts
           to add catalogs from manifests automatically.
       """.trimIndent())
     }

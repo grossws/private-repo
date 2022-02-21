@@ -18,12 +18,12 @@ package ws.gross.gradle.impl
 
 import org.gradle.api.Action
 import org.gradle.api.initialization.Settings
-import org.gradle.api.internal.FeaturePreviews
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.kotlin.dsl.*
-import org.gradle.kotlin.dsl.support.serviceOf
 import ws.gross.gradle.extensions.PrivateRepoExtension
+import ws.gross.gradle.isVersionCatalogsEnabled
+import ws.gross.gradle.isVersionCatalogsExperimental
 
 @Suppress("UnstableApiUsage")
 internal class BootstrapManifestAction(private val name: String) : Action<Settings> {
@@ -44,8 +44,7 @@ internal class BootstrapManifestAction(private val name: String) : Action<Settin
       }
     }
 
-    val features = serviceOf<FeaturePreviews>()
-    if (FeaturePreviews.Feature.VERSION_CATALOGS.isActive && !features.isFeatureEnabled(FeaturePreviews.Feature.VERSION_CATALOGS)) {
+    if (isVersionCatalogsExperimental() && !isVersionCatalogsEnabled()) {
       // VERSION_CATALOGS is still feature preview but not enabled
       logger.info("Version catalogs are still feature preview but not explicitly enabled, skipping catalogs bootstrap")
       return@run

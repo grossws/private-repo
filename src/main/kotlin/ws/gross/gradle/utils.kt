@@ -16,13 +16,6 @@
 
 package ws.gross.gradle
 
-import org.gradle.api.Project
-import java.util.regex.Pattern
-
-inline fun Project.ifNotDslAccessors(block: () -> Unit) {
-  if (project.name != "gradle-kotlin-dsl-accessors") block.invoke()
-}
-
 internal fun String?.parseList(): List<String> =
   (this ?: "").split(',').map { it.trim() }.filterNot { it.isEmpty() }
 
@@ -31,54 +24,3 @@ internal fun String.parsePair(): Pair<String, String> =
 
 internal fun String?.parseMap(): Map<String, String> =
   parseList().associate { it.parsePair() }
-
-val publishTaskNameRegex = """publish([A-Z][\w.]*)PublicationTo([A-Z]\w*)Repository""".toRegex()
-
-fun String.parsePublishTaskInfo(): PublishTaskInfo? =
-  publishTaskNameRegex.matchEntire(this)?.destructured?.let { (p, r) ->
-    PublishTaskInfo(publication = p.decapitalize(), repository = r.decapitalize())
-  }
-
-data class PublishTaskInfo(val publication: String, val repository: String)
-
-@Suppress("RegExpRepeatedSpace")
-val versionRegex: Pattern = Pattern.compile("""
-  # base version
-  (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)
-  (?:
-    # -rc.# and similar
-    -(?<type>dev|milestone|rc)\.(?<iteration>\d+)
-    # dirty repo marker
-    (?:\.(?<dirty>uncommitted))?
-    # metadata block
-    (?:\+(?<metadata>
-      (?:(?<feature>[\w.]+)\.)? # branch name
-      (?<hash>[a-fA-F0-9]+) # commit hash
-    ))?
-  )?
-  """, Pattern.COMMENTS)
-
-fun String.parseVersionInfo(): VersionInfo? = versionRegex.matcher(this).let { if (it.matches()) it else null }
-  ?.run {
-    VersionInfo(
-      major = group("major").toInt(),
-      minor = group("minor").toInt(),
-      patch = group("patch").toInt(),
-      significant = group("type") ?: "final",
-      iteration = group("iteration")?.toInt(),
-      dirty = group("dirty") != null,
-      metadata = group("metadata"),
-      feature = group("feature"),
-      hash = group("hash")
-    )
-  }
-
-data class VersionInfo(
-  val major: Int, val minor: Int, val patch: Int?,
-  val significant: String, val iteration: Int?,
-  val dirty: Boolean,
-  val metadata: String?, val feature: String?, val hash: String?
-) {
-  val release: Boolean
-    get() = significant in listOf("final", "rc")
-}

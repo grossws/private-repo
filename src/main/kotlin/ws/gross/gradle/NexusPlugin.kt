@@ -27,17 +27,24 @@ import org.gradle.api.plugins.PluginInstantiationException
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.*
 import org.gradle.util.GradleVersion
+import ws.gross.gradle.ProviderUtil.wrappedForUseAtConfigurationTime
 
 class NexusPlugin : Plugin<Settings> {
   companion object {
     // decoupling to not fail with obscure message on gradle
     val pluginVersion: String
       get() = NexusPluginImpl.pluginVersion
+
+    private val logger: Logger = Logging.getLogger(NexusPlugin::class.java)
   }
 
   override fun apply(settings: Settings) {
     if (GradleVersion.current() < GradleVersion.version("6.8")) {
       throw PluginInstantiationException("Only Gradle 6.8+ supported")
+    }
+
+    if (GradleVersion.current() < GradleVersion.version("7.4")) {
+      logger.lifecycle("Gradle 7.4+ recommended with ws.gross.private-repo plugin")
     }
 
     settings.apply<NexusPluginImpl>()
@@ -59,7 +66,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
     conf = NexusConfiguration.from(providers)
     repo = providers.gradleProperty("nexusRepo")
-      .forUseAtConfigurationTime()
+      .wrappedForUseAtConfigurationTime()
       .orElse("public")
 
     conf.baseUrl.orNull ?: throw GradleException("nexusUrl should be defined in gradle properties")
@@ -87,10 +94,10 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
   private fun Settings.configureRepos() {
     val groups = providers.gradleProperty("nexusGroups")
-      .forUseAtConfigurationTime()
+      .wrappedForUseAtConfigurationTime()
       .map { it.parseList() }.orElse(listOf()).get()
     val groupRegexes = providers.gradleProperty("nexusGroupRegexes")
-      .forUseAtConfigurationTime()
+      .wrappedForUseAtConfigurationTime()
       .map { it.parseList() }.orElse(conf.defaultGroupRegex).get()
 
     dependencyResolutionManagement.repositories {
@@ -99,7 +106,7 @@ internal class NexusPluginImpl : Plugin<Settings> {
 
       val repoUrl = conf.repoUrl(repo)
       val exclusive = providers.gradleProperty("nexusExclusive")
-        .forUseAtConfigurationTime()
+        .wrappedForUseAtConfigurationTime()
         .map { it.toBoolean() }.orElse(false).get()
 
       if (exclusive) {

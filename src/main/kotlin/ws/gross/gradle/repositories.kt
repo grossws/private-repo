@@ -27,6 +27,7 @@ import org.gradle.api.provider.ProviderFactory
 import org.gradle.authentication.http.BasicAuthentication
 import org.gradle.internal.artifacts.repositories.AuthenticationSupportedInternal
 import org.gradle.kotlin.dsl.*
+import ws.gross.gradle.ProviderUtil.wrappedForUseAtConfigurationTime
 import java.net.URI
 
 const val NEXUS_REPO_NAME = "nexus"
@@ -44,10 +45,10 @@ data class NexusConfiguration(
     @Suppress("UnstableApiUsage")
     fun from(providers: ProviderFactory): NexusConfiguration {
       val baseUrl = providers.gradleProperty("nexusUrl")
-        .forUseAtConfigurationTime()
+        .wrappedForUseAtConfigurationTime()
 
       val enabled = providers.gradleProperty("nexusDefaultGroupRegex")
-        .forUseAtConfigurationTime()
+        .wrappedForUseAtConfigurationTime()
         .map { it.toBoolean() }.orElse(true).get()
       val regex = baseUrl.map {
         URI.create(it).host
