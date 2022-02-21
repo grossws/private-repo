@@ -16,29 +16,17 @@
 
 package ws.gross.gradle
 
-import assertk.Assert
 import assertk.all
 import assertk.assertThat
 import assertk.assertions.*
-import assertk.assertions.support.appendName
-import assertk.assertions.support.expected
-import assertk.assertions.support.show
-import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.*
 import java.io.File
-import java.io.StringReader
-import java.util.Properties
 
 class BootstrapManifestPluginFunctionalTest {
   private val projectDir = createProjectDir()
 
   private val manifest: File
     get() = projectDir.resolve("build/manifest.properties")
-
-  @BeforeEach
-  fun init() {
-    baseProject()
-  }
 
   @Test
   fun `simple manifest`() {
@@ -70,14 +58,12 @@ class BootstrapManifestPluginFunctionalTest {
 
   @Test
   fun `use configuration cache`() {
-    val runner = createRunner().withArguments("generateBootstrapManifest", "--configuration-cache")
+    val runner = createRunner().withConfigurationCache()
     runner.build()
     val result = runner.build()
 
     assertThat(result).task(":generateBootstrapManifest").isUpToDate()
-    assertThat(result.output.lines()).any {
-      it.contains("reusing configuration cache", ignoreCase = true)
-    }
+    assertThat(result).reusedConfigurationCache()
   }
 
   @Test
@@ -87,7 +73,8 @@ class BootstrapManifestPluginFunctionalTest {
     assertThat(result).task(":generateBootstrapManifest").isSuccess()
   }
 
-  private fun baseProject() {
+  @BeforeEach
+  fun baseProject() {
     projectDir.resolve("settings.gradle.kts").writeText("""
       rootProject.name = "functional-test"
     """.trimIndent())
@@ -113,21 +100,6 @@ class BootstrapManifestPluginFunctionalTest {
     """.trimIndent())
   }
 
-  private fun createRunner(gradleVersion: String? = null) = GradleRunner.create()
-    .withPluginClasspath()
-    .withProjectDir(projectDir)
+  private fun createRunner(gradleVersion: String? = null) = createRunner(projectDir, gradleVersion)
     .withArguments("generateBootstrapManifest")
-    .apply { if (gradleVersion != null) withGradleVersion(gradleVersion) }
-}
-
-fun Assert<String>.asProperties() = transform { text ->
-  Properties().apply { load(StringReader(text)) }
-}
-
-fun Assert<Properties>.key(key: String) = transform(appendName(show(key, "[]"))) {
-  if (it.containsKey(key)) {
-    it.getProperty(key)
-  } else {
-    expected("to have key:${show(key)}")
-  }
 }

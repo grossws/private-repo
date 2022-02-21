@@ -16,18 +16,16 @@
 
 package ws.gross.gradle
 
+import assertk.Assert
 import assertk.assertThat
 import assertk.assertions.*
 import com.github.syari.kgit.KGit
 import org.eclipse.jgit.transport.URIish
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
-import org.gradle.testkit.runner.internal.DefaultGradleRunner
 import org.junit.jupiter.api.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import java.io.ByteArrayInputStream
-import java.io.File
 import java.util.stream.Stream
 
 class ReleaseApprovePluginFunctionalTest {
@@ -53,12 +51,7 @@ class ReleaseApprovePluginFunctionalTest {
       ).flatMap { if (configurationCache) Stream.of(it, it.copy(configurationCache = true)) else Stream.of(it) }
   }
 
-  private val projectDir: File = createProjectDir()
-
-  @BeforeEach
-  fun init() {
-    baseProject()
-  }
+  private val projectDir = createProjectDir()
 
   @Nested
   inner class TaskPresence {
@@ -69,59 +62,45 @@ class ReleaseApprovePluginFunctionalTest {
       """.trimIndent())
 
       val parameters = Parameters(approve = null, interactive = false, args = listOf("tasks"), expectFail = false)
-      val result = createRunner(projectDir, parameters = parameters).build(parameters)
+      val result = createRunner(parameters).build(parameters)
 
       assertThat(result).task(":tasks").isSuccess()
-      assertThat(result.output.lines()).none {
-        it.startsWith("approveRelease - ")
-      }
+      assertThat(result).output().none { it.startsWith("approveRelease - ") }
     }
 
     @Test
     fun `releaseApprove task present`() {
       val parameters = Parameters(approve = null, interactive = false, args = listOf("tasks"), expectFail = false)
-      val result = createRunner(projectDir, parameters = parameters).build(parameters)
+      val result = createRunner(parameters).build(parameters)
 
       assertThat(result).task(":tasks").isSuccess()
-      assertThat(result.output.lines()).any {
-        it.startsWith("approveRelease - ")
-      }
+      assertThat(result).output().any { it.startsWith("approveRelease - ") }
     }
   }
 
   @ParameterizedTest
   @MethodSource("approve")
   fun `approve task succeeds`(parameters: Parameters) {
-    val result = createRunner(projectDir, parameters = parameters).withDebug(true).build(parameters)
+    val result = createRunner(parameters).build(parameters)
 
     assertThat(result).task(":approveRelease").isSuccess()
-    if (parameters.configurationCache) {
-      assertThat(result.output.lines()).any {
-        it.contains("reusing configuration cache", ignoreCase = true)
-      }
-    }
+    if (parameters.configurationCache) assertThat(result).reusedConfigurationCache()
   }
 
   @ParameterizedTest
   @MethodSource("disallow")
   fun `approve task fails`(parameters: Parameters) {
-    val result = createRunner(projectDir, parameters = parameters).build(parameters)
+    val result = createRunner(parameters).build(parameters)
 
     assertThat(result).task(":approveRelease").isFailed()
-    assertThat(result.output.lines()).any {
-      it.contains("not approved", ignoreCase = true)
-    }
-    if (parameters.configurationCache) {
-      assertThat(result.output.lines()).any {
-        it.contains("reusing configuration cache", ignoreCase = true)
-      }
-    }
+    assertThat(result).notApproved()
+    if (parameters.configurationCache) assertThat(result).reusedConfigurationCache()
   }
 
   @ParameterizedTest
   @MethodSource("approveFinal")
   fun `approved release successful`(parameters: Parameters) {
-    val result = createRunner(projectDir, parameters = parameters).build(parameters)
+    val result = createRunner(parameters).build(parameters)
 
     assertThat(result).task(":approveRelease").isSuccess()
 
@@ -132,12 +111,10 @@ class ReleaseApprovePluginFunctionalTest {
   @ParameterizedTest
   @MethodSource("disallowFinal")
   fun `not approved release fails`(parameters: Parameters) {
-    val result = createRunner(projectDir, parameters = parameters).build(parameters)
+    val result = createRunner(parameters).build(parameters)
 
     assertThat(result).task(":approveRelease").isFailed()
-    assertThat(result.output.lines()).any {
-      it.contains("not approved", ignoreCase = true)
-    }
+    assertThat(result).notApproved()
 
     val tag = KGit.open(projectDir).use { it.describe { setTags(true) } }
     assertThat(tag).isNotNull().startsWith("v0.1.0-1-g")
@@ -149,47 +126,36 @@ class ReleaseApprovePluginFunctionalTest {
     val configurationCache: Boolean = false,
     val args: List<String>,
     val expectFail: Boolean = approve == null || !approve
-  )
+  ) {
+    val interactiveInput: String?
+      get() = approve?.let { if (approve) "yes\n" else "no\n" }
+
+    val effectiveArgs: List<String>
+      get() = args.toMutableList().apply {
+        if (!interactive && approve != null) add("-Prelease.approve=${approve}")
+        if (configurationCache) add("--configuration-cache")
+      }
+  }
 
   private fun createRunner(
-    projectDir: File,
-    gradleVersion: String? = null,
     parameters: Parameters,
-  ): GradleRunner {
-    val effectiveArgs = parameters.args.toMutableList()
-    val runner = GradleRunner.create()
-      .forwardOutput()
-      .withPluginClasspath()
-      .withProjectDir(projectDir)
-    if (gradleVersion != null) runner.withGradleVersion(gradleVersion)
-    if (parameters.approve != null) {
-      if (parameters.interactive) {
-        runner.withInteractiveInput(parameters.approve)
-      } else {
-        effectiveArgs.add("-Prelease.approve=${parameters.approve}")
-      }
+    gradleVersion: String? = null,
+  ): GradleRunner = createRunner(projectDir, gradleVersion)
+    .withArguments(parameters.effectiveArgs)
+    .also {
+      if (parameters.interactive && parameters.approve != null) it.withInteractiveInput(parameters.interactiveInput)
     }
-    if (parameters.configurationCache) {
-      effectiveArgs.add("--configuration-cache")
-    }
-    return runner.withArguments(effectiveArgs)
-  }
-
-  private fun GradleRunner.withInteractiveInput(approve: Boolean?) = apply {
-    approve ?: return@apply
-    val answer = if (approve) "yes\n" else "no\n"
-    (this as DefaultGradleRunner).withStandardInput(ByteArrayInputStream(answer.toByteArray()))
-  }
 
   private fun GradleRunner.build(parameters: Parameters): BuildResult {
     if (parameters.configurationCache) {
       if (parameters.expectFail) buildAndFail() else build()
-      withInteractiveInput(parameters.approve)
+      if (parameters.approve != null) withInteractiveInput(parameters.interactiveInput)
     }
     return if (parameters.expectFail) buildAndFail() else build()
   }
 
-  private fun baseProject() {
+  @BeforeEach
+  fun baseProject() {
     val remoteRepoDir = projectDir.resolve("remote.git")
     KGit.init {
       setBare(true)
@@ -256,5 +222,9 @@ class ReleaseApprovePluginFunctionalTest {
         setPushTags()
       }
     }
+  }
+
+  private fun Assert<BuildResult>.notApproved() = prop("output") { it.output.lines() }.any {
+    it.contains("not approved", ignoreCase = true)
   }
 }

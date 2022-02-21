@@ -16,26 +16,11 @@
 
 package ws.gross.gradle
 
-import assertk.Assert
-import assertk.assertions.isEqualTo
-import assertk.assertions.isNotNull
-import assertk.assertions.prop
 import org.gradle.internal.SystemProperties
-import org.gradle.testkit.runner.BuildResult
-import org.gradle.testkit.runner.BuildTask
 import org.gradle.testkit.runner.GradleRunner
-import org.gradle.testkit.runner.TaskOutcome
+import org.gradle.testkit.runner.internal.DefaultGradleRunner
+import java.io.ByteArrayInputStream
 import java.io.File
-
-fun Assert<BuildResult>.task(name: String): Assert<BuildTask> = prop("task[$name]") { it.task(name) }
-  .isNotNull()
-
-fun Assert<BuildTask>.isSuccess() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.SUCCESS)
-fun Assert<BuildTask>.isFailed() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.FAILED)
-fun Assert<BuildTask>.isUpToDate() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.UP_TO_DATE)
-fun Assert<BuildTask>.isSkipped() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.SKIPPED)
-fun Assert<BuildTask>.isFromCache() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.FROM_CACHE)
-fun Assert<BuildTask>.isNoSource() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.NO_SOURCE)
 
 fun createProjectDir(): File {
   val baseDir = File(SystemProperties.getInstance().workerTmpDir ?: "build/tmp/functionalTest")
@@ -45,6 +30,21 @@ fun createProjectDir(): File {
   projectDir.mkdirs()
   projectDir.deleteOnExit()
   return projectDir
+}
+
+fun createRunner(projectDir: File, gradleVersion: String? = null): GradleRunner = GradleRunner.create()
+  .forwardOutput()
+  .withPluginClasspath()
+  .withProjectDir(projectDir).also {
+    if (gradleVersion != null) it.withGradleVersion(gradleVersion)
+  }
+
+fun GradleRunner.withConfigurationCache(enable: Boolean = true): GradleRunner =
+  withArguments(if (enable) arguments.toMutableList().apply { add("--configuration-cache") } else arguments)
+
+fun GradleRunner.withInteractiveInput(input: String?): GradleRunner = apply {
+  input ?: return@apply
+  (this as DefaultGradleRunner).withStandardInput(ByteArrayInputStream(input.toByteArray()))
 }
 
 fun publishCatalogAndManifest(baseDir: File) {

@@ -26,53 +26,46 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.MAVEN_CENTRAL_URL
-import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
-import java.io.File
 
 class NexusPluginFunctionalTest {
   companion object {
+    private val projectDir = createProjectDir()
+
     @BeforeAll
     @JvmStatic
     fun initRepo() {
-      publishCatalogAndManifest(File("build/functionalTest/fixtures"))
+      publishCatalogAndManifest(projectDir.resolve("repo"))
     }
-  }
-
-  private val projectDir = createProjectDir()
-
-  @BeforeEach
-  fun init() {
-    baseProject()
   }
 
   @Nested
   inner class Prerequisites {
     @Test
     fun `fails if old gradle`() {
-      val result = createRunner(projectDir, "6.7").buildAndFail()
+      val result = createRunner("6.7").buildAndFail()
 
-      assertThat(result.output).contains("Only Gradle 6.8+ supported")
+      assertThat(result).output().any { it.contains("Only Gradle 6.8+ supported", ignoreCase = true) }
     }
 
     @Test
     fun `fails if nexusUrl property absent`() {
       projectDir.resolve("gradle.properties").writeText("")
 
-      val result = createRunner(projectDir).buildAndFail()
+      val result = createRunner().buildAndFail()
 
-      assertThat(result.output).contains("nexusUrl should be defined")
+      assertThat(result).output().any { it.contains("nexusUrl should be defined", ignoreCase = true) }
     }
   }
 
   @Nested
   inner class NormalUse {
     @ParameterizedTest
-    @ValueSource(strings = ["6.8.3", "7.0"])
+    @ValueSource(strings = ["6.8.3", "7.0", "7.4"])
     fun `sane defaults`(gradleVersion: String) {
-      val result = createRunner(projectDir, gradleVersion).build()
+      val result = createRunner(gradleVersion).build()
 
       assertThat(parseOutput(result.output)).repos {
         each {
@@ -89,7 +82,7 @@ class NexusPluginFunctionalTest {
       nexusDefaultGroupRegex = false
       """.trimIndent())
 
-      val result = createRunner(projectDir).build()
+      val result = createRunner().build()
 
       assertThat(parseOutput(result.output)).repos {
         each {
@@ -105,7 +98,7 @@ class NexusPluginFunctionalTest {
       nexusGroupRegexes = org\\.example(\\..*)?, dev\\..*
       """.trimIndent())
 
-      val result = createRunner(projectDir).build()
+      val result = createRunner().build()
 
       assertThat(parseOutput(result.output)).repos {
         each { it.includeMatchers().isEmpty() }
@@ -120,7 +113,7 @@ class NexusPluginFunctionalTest {
       nexusGroups = org.example, org.example.gradle
       """.trimIndent())
 
-      val result = createRunner(projectDir).build()
+      val result = createRunner().build()
 
       assertThat(parseOutput(result.output)).repos {
         each { it.includeMatchers().isEmpty() }
@@ -128,11 +121,6 @@ class NexusPluginFunctionalTest {
         nexus().excludeMatchers().isEmpty()
       }
     }
-  }
-
-  @Nested
-  inner class ExclusiveContent {
-
   }
 
   abstract inner class BootstrapManifestsBase {
@@ -143,12 +131,12 @@ class NexusPluginFunctionalTest {
           // dummy repo to resolve manifest from
           pluginManagement.repositories.maven {
             name = "TestMaven"
-            url = uri("../repo")
+            url = uri("repo")
           }
           // dummy repo to resolve catalog from
           dependencyResolutionManagement.repositories.maven {
             name = "TestMaven"
-            url = uri("../repo")
+            url = uri("repo")
           }
         }
       """.trimIndent())
@@ -158,6 +146,7 @@ class NexusPluginFunctionalTest {
 
     abstract fun configureBootstrap()
     abstract fun configureBootstrapCatalogs()
+    protected open val gradleVersion: String? = null
 
     @Test
     fun `plugins added by bootstrap`() {
@@ -165,11 +154,9 @@ class NexusPluginFunctionalTest {
         plugins { id("org.example.dummy") }
       """.trimIndent())
 
-      val result = createRunner(projectDir).build()
+      val result = createRunner(gradleVersion).withArguments("-I", "dummy-repo.init.gradle.kts", "-i", "clean").build()
 
-      assertThat(result.output)
-        .isNotNull()
-        .contains("DUMMY|dummy plugin applied")
+      assertThat(result).output().any { it.contains("DUMMY|dummy plugin applied") }
     }
 
     @Test
@@ -185,20 +172,14 @@ class NexusPluginFunctionalTest {
 
       configureBootstrapCatalogs()
 
-      val result = createRunner(projectDir).build()
+      val result = createRunner(gradleVersion).withArguments("-I", "dummy-repo.init.gradle.kts", "-i", "clean").build()
 
-      assertThat(result.output)
-        .isNotNull()
-        .contains("DEP|guava|jar|31")
+      assertThat(result).output().any { it.contains("DEP|guava|jar|31") }
     }
-
-    protected fun createRunner(projectDir: File): GradleRunner =
-      this@NexusPluginFunctionalTest.createRunner(projectDir)
-        .withArguments("-I", "dummy-repo.init.gradle.kts", "-i", "clean")
   }
 
   @Nested
-  inner class BoostrapManifests : BootstrapManifestsBase() {
+  open inner class BootstrapManifests : BootstrapManifestsBase() {
     override fun configureBootstrap() {
       projectDir.resolve("settings.gradle.kts").appendText("""
         privateRepo {
@@ -209,6 +190,15 @@ class NexusPluginFunctionalTest {
 
       """.trimIndent())
     }
+
+    override fun configureBootstrapCatalogs() {
+      // no-op
+    }
+  }
+
+  @Nested
+  inner class BootstrapManifestsUnstableCatalogs : BootstrapManifests() {
+    override val gradleVersion = "7.3"
 
     override fun configureBootstrapCatalogs() {
       projectDir.resolve("settings.gradle.kts").appendText("""
@@ -236,33 +226,26 @@ class NexusPluginFunctionalTest {
 
     @Test
     fun `using nexusBootstrap property gives deprecation warning`() {
-      val result = createRunner(projectDir).build()
+      val result = createRunner(gradleVersion).withArguments("-I", "dummy-repo.init.gradle.kts", "-i", "clean").build()
 
-      assertThat(result.output)
-        .isNotNull()
-        .contains("nexusBootstrap property is deprecated")
+      assertThat(result).output().any { it.contains("nexusBootstrap property is deprecated") }
     }
 
     @Test
     fun `using nexusBootstrapCatalogs property gives deprecation warning`() {
       configureBootstrapCatalogs()
 
-      val result = createRunner(projectDir).build()
+      val result = createRunner(gradleVersion).withArguments("-I", "dummy-repo.init.gradle.kts", "-i", "clean").build()
 
-      assertThat(result.output)
-        .isNotNull()
-        .contains("nexusBootstrapCatalogs property is deprecated")
+      assertThat(result).output().any { it.contains("nexusBootstrapCatalogs property is deprecated") }
     }
   }
 
-  private fun createRunner(projectDir: File, gradleVersion: String? = null) = GradleRunner.create()
-    .forwardOutput()
-    .withPluginClasspath()
+  private fun createRunner(gradleVersion: String? = null) = createRunner(projectDir, gradleVersion)
     .withArguments("clean")
-    .withProjectDir(projectDir)
-    .apply { if (gradleVersion != null) withGradleVersion(gradleVersion) }
 
-  private fun baseProject() {
+  @BeforeEach
+  fun baseProject() {
     val d = "$"
 
     projectDir.resolve("settings.gradle.kts").writeText("""
@@ -339,17 +322,17 @@ data class RepoFilter(
   }
 }
 
-fun Assert<List<Repo>>.mavenCentral() = index(0)
-fun Assert<List<Repo>>.nexus() = index(1)
+private fun Assert<List<Repo>>.mavenCentral() = index(0)
+private fun Assert<List<Repo>>.nexus() = index(1)
 
-fun Assert<List<Repo>>.repos(alsoCheck: Assert<List<Repo>>.() -> Unit) = all {
+private fun Assert<List<Repo>>.repos(alsoCheck: Assert<List<Repo>>.() -> Unit) = all {
   hasSize(2)
   mavenCentral().repo(DEFAULT_MAVEN_CENTRAL_REPO_NAME, MAVEN_CENTRAL_URL)
   nexus().repo("nexus", "https://nexus.example.com/repository/public")
   alsoCheck()
 }
 
-fun Assert<Repo>.repo(name: String, url: String): Assert<Repo> = transform { repo ->
+private fun Assert<Repo>.repo(name: String, url: String): Assert<Repo> = transform { repo ->
   prop("name") { it.name }.isEqualTo(name)
   prop("url") { it.url }.isEqualTo(url)
   includeMatchers().allValid()
@@ -357,23 +340,23 @@ fun Assert<Repo>.repo(name: String, url: String): Assert<Repo> = transform { rep
   repo
 }
 
-fun Assert<Repo>.filters() = prop("filters") { it.filters }
+private fun Assert<Repo>.filters() = prop("filters") { it.filters }
 
-fun Assert<Repo>.includeMatchers() = filters().prop("include") { it.includeMatchers }
+private fun Assert<Repo>.includeMatchers() = filters().prop("include") { it.includeMatchers }
 
-fun Assert<Repo>.excludeMatchers() = filters().prop("exclude") { it.excludeMatchers }
+private fun Assert<Repo>.excludeMatchers() = filters().prop("exclude") { it.excludeMatchers }
 
-fun Assert<List<RepoFilter>>.allValid() = transform { filters ->
+private fun Assert<List<RepoFilter>>.allValid() = transform { filters ->
   each { filter -> filter.prop("valid") { it.isValid() }.isTrue() }
   filters
 }
 
-fun Assert<List<RepoFilter>>.groupRegexes(vararg regex: String) = prop("groupPattern") { filters ->
-  filters.map { it.groupPattern }.filterNotNull().toSet()
+private fun Assert<List<RepoFilter>>.groupRegexes(vararg regex: String) = prop("groupPattern") { filters ->
+  filters.mapNotNull { it.groupPattern }.toSet()
 }.containsOnly(*regex)
 
-fun Assert<List<RepoFilter>>.groups(vararg regex: String) = prop("group") { filters ->
-  filters.map { it.group }.filterNotNull().toSet()
+private fun Assert<List<RepoFilter>>.groups(vararg regex: String) = prop("group") { filters ->
+  filters.mapNotNull { it.group }.toSet()
 }.containsOnly(*regex)
 
 private val mapper = jacksonObjectMapper()
