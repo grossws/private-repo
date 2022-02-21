@@ -32,14 +32,14 @@ import java.io.StringReader
 import java.util.Properties
 
 class BootstrapManifestPluginFunctionalTest {
-  lateinit var projectDir: File
+  private val projectDir = createProjectDir()
 
   private val manifest: File
     get() = projectDir.resolve("build/manifest.properties")
 
   @BeforeEach
   fun init() {
-    projectDir = baseProject()
+    baseProject()
   }
 
   @Test
@@ -77,11 +77,7 @@ class BootstrapManifestPluginFunctionalTest {
     assertThat(result).task(":generateBootstrapManifest").isSuccess()
   }
 
-  private fun baseProject(): File {
-    val projectDir = File("build/functionalTest/bootstrap-manifest")
-    if (projectDir.exists()) projectDir.deleteRecursively()
-    projectDir.mkdirs()
-
+  private fun baseProject() {
     projectDir.resolve("settings.gradle.kts").writeText("""
       rootProject.name = "functional-test"
     """.trimIndent())
@@ -105,8 +101,6 @@ class BootstrapManifestPluginFunctionalTest {
     projectDir.resolve("gradle.properties").writeText("""
       group = test.group
     """.trimIndent())
-
-    return projectDir
   }
 
   private fun createRunner(projectDir: File, gradleVersion: String? = null) = GradleRunner.create()

@@ -20,6 +20,7 @@ import assertk.Assert
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.prop
+import org.gradle.internal.SystemProperties
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.BuildTask
 import org.gradle.testkit.runner.GradleRunner
@@ -35,6 +36,16 @@ fun Assert<BuildTask>.isUpToDate() = prop("outcome") { it.outcome }.isEqualTo(Ta
 fun Assert<BuildTask>.isSkipped() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.SKIPPED)
 fun Assert<BuildTask>.isFromCache() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.FROM_CACHE)
 fun Assert<BuildTask>.isNoSource() = prop("outcome") { it.outcome }.isEqualTo(TaskOutcome.NO_SOURCE)
+
+fun createProjectDir(): File {
+  val baseDir = File(SystemProperties.getInstance().workerTmpDir ?: "build/tmp/functionalTest")
+  baseDir.mkdirs()
+  val projectDir = File.createTempFile("gradle-", "-projectDir", baseDir)
+  if (projectDir.exists()) projectDir.deleteRecursively()
+  projectDir.mkdirs()
+  projectDir.deleteOnExit()
+  return projectDir
+}
 
 fun publishCatalogAndManifest(baseDir: File) {
   baseDir.mkdirs()

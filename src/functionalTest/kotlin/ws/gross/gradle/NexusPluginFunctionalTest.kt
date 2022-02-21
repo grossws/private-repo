@@ -41,11 +41,11 @@ class NexusPluginFunctionalTest {
     }
   }
 
-  lateinit var projectDir: File
+  private val projectDir = createProjectDir()
 
   @BeforeEach
   fun init() {
-    projectDir = baseProject()
+    baseProject()
   }
 
   @Nested
@@ -262,10 +262,7 @@ class NexusPluginFunctionalTest {
     .withProjectDir(projectDir)
     .apply { if (gradleVersion != null) withGradleVersion(gradleVersion) }
 
-  private fun baseProject(): File {
-    val projectDir = File("build/functionalTest/private-repo")
-    projectDir.mkdirs()
-
+  private fun baseProject() {
     val d = "$"
 
     projectDir.resolve("settings.gradle.kts").writeText("""
@@ -303,8 +300,6 @@ class NexusPluginFunctionalTest {
       nexusPassword = secret
 
     """.trimIndent())
-
-    return projectDir
   }
 }
 

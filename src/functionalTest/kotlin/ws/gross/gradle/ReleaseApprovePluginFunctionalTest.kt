@@ -53,11 +53,11 @@ class ReleaseApprovePluginFunctionalTest {
       ).flatMap { if (configurationCache) Stream.of(it, it.copy(configurationCache = true)) else Stream.of(it) }
   }
 
-  lateinit var projectDir: File
+  private val projectDir: File = createProjectDir()
 
   @BeforeEach
   fun init() {
-    projectDir = baseProject()
+    baseProject()
   }
 
   @Nested
@@ -189,11 +189,7 @@ class ReleaseApprovePluginFunctionalTest {
     return if (parameters.expectFail) buildAndFail() else build()
   }
 
-  private fun baseProject(): File {
-    val projectDir = File("build/functionalTest/private-repo")
-    if (projectDir.exists()) projectDir.deleteRecursively()
-    projectDir.mkdirs()
-
+  private fun baseProject() {
     val remoteRepoDir = projectDir.resolve("remote.git")
     KGit.init {
       setBare(true)
@@ -260,7 +256,5 @@ class ReleaseApprovePluginFunctionalTest {
         setPushTags()
       }
     }
-
-    return projectDir
   }
 }
