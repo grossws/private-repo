@@ -21,11 +21,17 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.*
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
+import org.gradle.internal.util.PropertiesUtils
+import java.io.BufferedOutputStream
+import java.io.FileOutputStream
+import java.nio.charset.StandardCharsets
+import java.util.Properties
 
 abstract class GenerateBootstrapManifest : DefaultTask() {
-  private val delegate = WriteProperties()
-
   @get:Input
   abstract val pluginIds: ListProperty<String>
 
@@ -44,14 +50,14 @@ abstract class GenerateBootstrapManifest : DefaultTask() {
 
   @TaskAction
   fun writeProperties() {
-    delegate.setOutputFile(outputFile)
+    val properties = Properties()
 
     val catalogs = catalogIds.get().toList().sortedBy { it.first }
     val plugins = pluginIds.get().sorted()
-    delegate.property("catalogIds", catalogs.joinToString(",") { "${it.first}=${it.second}" })
-    delegate.property("pluginIds", plugins.joinToString(","))
-    delegate.property("version", version.get())
-    manifestDescription.orNull?.let { delegate.property("description", it) }
+    properties.setProperty("catalogIds", catalogs.joinToString(",") { "${it.first}=${it.second}" })
+    properties.setProperty("pluginIds", plugins.joinToString(","))
+    properties.setProperty("version", version.get())
+    manifestDescription.orNull?.let { properties.setProperty("description", it) }
 
     logger.info("""
     |Writing manifest to ${outputFile.get()}:
@@ -60,6 +66,9 @@ abstract class GenerateBootstrapManifest : DefaultTask() {
     |  version = ${version.get()}
     |  description = ${manifestDescription.orElse("<none>")}
     """.trimMargin())
-    delegate.writeProperties()
+
+    BufferedOutputStream(FileOutputStream(outputFile.get().asFile)).use { out ->
+      PropertiesUtils.store(properties, out, null, StandardCharsets.UTF_8, "\n")
+    }
   }
 }

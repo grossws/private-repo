@@ -19,12 +19,10 @@ package ws.gross.gradle
 import assertk.Assert
 import assertk.all
 import assertk.assertThat
-import assertk.assertions.exists
-import assertk.assertions.isEqualTo
+import assertk.assertions.*
 import assertk.assertions.support.appendName
 import assertk.assertions.support.expected
 import assertk.assertions.support.show
-import assertk.assertions.text
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.*
 import java.io.File
@@ -44,7 +42,7 @@ class BootstrapManifestPluginFunctionalTest {
 
   @Test
   fun `simple manifest`() {
-    val result = createRunner(projectDir).build()
+    val result = createRunner().build()
 
     assertThat(result)
       .task(":generateBootstrapManifest")
@@ -63,16 +61,28 @@ class BootstrapManifestPluginFunctionalTest {
 
   @Test
   fun `caches result`() {
-    val first = createRunner(projectDir).build()
-    val second = createRunner(projectDir).build()
+    val first = createRunner().build()
+    val second = createRunner().build()
 
     assertThat(first).task(":generateBootstrapManifest").isSuccess()
     assertThat(second).task(":generateBootstrapManifest").isUpToDate()
   }
 
   @Test
+  fun `use configuration cache`() {
+    val runner = createRunner().withArguments("generateBootstrapManifest", "--configuration-cache")
+    runner.build()
+    val result = runner.build()
+
+    assertThat(result).task(":generateBootstrapManifest").isUpToDate()
+    assertThat(result.output.lines()).any {
+      it.contains("reusing configuration cache", ignoreCase = true)
+    }
+  }
+
+  @Test
   fun `is run on assemble`() {
-    val result = createRunner(projectDir).withArguments("assemble").build()
+    val result = createRunner().withArguments("assemble").build()
 
     assertThat(result).task(":generateBootstrapManifest").isSuccess()
   }
@@ -103,7 +113,7 @@ class BootstrapManifestPluginFunctionalTest {
     """.trimIndent())
   }
 
-  private fun createRunner(projectDir: File, gradleVersion: String? = null) = GradleRunner.create()
+  private fun createRunner(gradleVersion: String? = null) = GradleRunner.create()
     .withPluginClasspath()
     .withProjectDir(projectDir)
     .withArguments("generateBootstrapManifest")
