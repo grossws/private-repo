@@ -26,6 +26,8 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.MAVEN_CENTRAL_URL
+import org.gradle.api.internal.artifacts.BaseRepositoryFactory.PLUGIN_PORTAL_DEFAULT_URL
+import org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler.GRADLE_PLUGIN_PORTAL_REPO_NAME
 import org.junit.jupiter.api.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -67,12 +69,25 @@ class PrivateRepoPluginFunctionalTest {
     fun `sane defaults`(gradleVersion: String) {
       val result = createRunner(gradleVersion).build()
 
-      assertThat(parseOutput(result.output)).repos {
+      assertThat(parseDependencyRepos(result.output)).dependencyRepos {
         each {
           it.includeMatchers().isEmpty()
         }
-        mavenCentral().excludeMatchers().groupRegexes("com\\.example(\\..*)?")
-        nexus().excludeMatchers().isEmpty()
+        index(0).excludeMatchers().groupRegexes("com\\.example(\\..*)?")
+        index(1).excludeMatchers().isEmpty()
+      }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["6.8.3", "7.0", "7.4"])
+    fun `correct plugin repos`(gradleVersion: String) {
+      val result = createRunner(gradleVersion).build()
+
+      assertThat(parsePluginRepos(result.output)).all {
+        hasSize(3)
+        index(0).nexus()
+        index(1).mavenCentral()
+        index(2).gradlePluginPortal()
       }
     }
 
@@ -84,7 +99,7 @@ class PrivateRepoPluginFunctionalTest {
 
       val result = createRunner().build()
 
-      assertThat(parseOutput(result.output)).repos {
+      assertThat(parseDependencyRepos(result.output)).dependencyRepos {
         each {
           it.includeMatchers().isEmpty()
           it.excludeMatchers().isEmpty()
@@ -100,10 +115,10 @@ class PrivateRepoPluginFunctionalTest {
 
       val result = createRunner().build()
 
-      assertThat(parseOutput(result.output)).repos {
+      assertThat(parseDependencyRepos(result.output)).dependencyRepos {
         each { it.includeMatchers().isEmpty() }
-        mavenCentral().excludeMatchers().groupRegexes("org\\.example(\\..*)?", "dev\\..*")
-        nexus().excludeMatchers().isEmpty()
+        index(0).excludeMatchers().groupRegexes("org\\.example(\\..*)?", "dev\\..*")
+        index(1).excludeMatchers().isEmpty()
       }
     }
 
@@ -115,10 +130,10 @@ class PrivateRepoPluginFunctionalTest {
 
       val result = createRunner().build()
 
-      assertThat(parseOutput(result.output)).repos {
+      assertThat(parseDependencyRepos(result.output)).dependencyRepos {
         each { it.includeMatchers().isEmpty() }
-        mavenCentral().excludeMatchers().groups("org.example", "org.example.gradle")
-        nexus().excludeMatchers().isEmpty()
+        index(0).excludeMatchers().groups("org.example", "org.example.gradle")
+        index(1).excludeMatchers().isEmpty()
       }
     }
   }
@@ -263,6 +278,12 @@ class PrivateRepoPluginFunctionalTest {
       val mapper = ObjectMapper().setDefaultVisibility(
         JsonAutoDetect.Value.defaultVisibility().withFieldVisibility(JsonAutoDetect.Visibility.ANY)
       )
+      pluginManagement.repositories.forEach {
+        val r = it as MavenArtifactRepository
+        var f: Any? = null
+        r.content { f = (this as RepositoryContentDescriptorInternal).toContentFilter() }
+        println("PLUGIN_REPO|$d{r.name}|$d{r.url}|$d{mapper.writeValueAsString(f)}")
+      }
       dependencyResolutionManagement.repositories.forEach {
         val r = it as MavenArtifactRepository
         var f: Any? = null
@@ -322,13 +343,14 @@ data class RepoFilter(
   }
 }
 
-private fun Assert<List<Repo>>.mavenCentral() = index(0)
-private fun Assert<List<Repo>>.nexus() = index(1)
+private fun Assert<Repo>.nexus() = repo("nexus", "https://nexus.example.com/repository/public")
+private fun Assert<Repo>.mavenCentral() = repo(DEFAULT_MAVEN_CENTRAL_REPO_NAME, MAVEN_CENTRAL_URL)
+private fun Assert<Repo>.gradlePluginPortal() = repo(GRADLE_PLUGIN_PORTAL_REPO_NAME, PLUGIN_PORTAL_DEFAULT_URL)
 
-private fun Assert<List<Repo>>.repos(alsoCheck: Assert<List<Repo>>.() -> Unit) = all {
+private fun Assert<List<Repo>>.dependencyRepos(alsoCheck: Assert<List<Repo>>.() -> Unit) = all {
   hasSize(2)
-  mavenCentral().repo(DEFAULT_MAVEN_CENTRAL_REPO_NAME, MAVEN_CENTRAL_URL)
-  nexus().repo("nexus", "https://nexus.example.com/repository/public")
+  index(0).mavenCentral()
+  index(1).nexus()
   alsoCheck()
 }
 
@@ -363,9 +385,13 @@ private val mapper = jacksonObjectMapper()
   .findAndRegisterModules()
   .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-private fun parseOutput(data: String): List<Repo> = data.lineSequence()
-  .filter { it.startsWith("REPO|") }
+private fun parseRepos(data: String, prefix: String) = data.lineSequence()
+  .filter { it.startsWith("$prefix|") }
   .map { it.split('|') }
   .map { Repo(it[1], it[2], mapper.readValue(it[3])) }
   .toList()
+
+private fun parseDependencyRepos(data: String): List<Repo> = parseRepos(data, "REPO")
   .sortedBy { it.name.toLowerCase() }
+
+private fun parsePluginRepos(data: String): List<Repo> = parseRepos(data, "PLUGIN_REPO")

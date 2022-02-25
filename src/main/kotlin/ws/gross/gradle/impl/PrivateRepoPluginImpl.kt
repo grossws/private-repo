@@ -21,6 +21,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.initialization.Settings
+import org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler.GRADLE_PLUGIN_PORTAL_REPO_NAME
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.provider.Provider
@@ -57,6 +58,8 @@ internal class PrivateRepoPluginImpl : Plugin<Settings> {
 
   private fun Settings.configurePluginRepos() {
     pluginManagement.repositories {
+      removeIf { it.name == GRADLE_PLUGIN_PORTAL_REPO_NAME }
+
       val repoUrl = conf.repoUrl(repo)
       logger.info("Adding $NEXUS_REPO_NAME(${repoUrl.get()}) to pluginManagement")
       maven(NEXUS_REPO_NAME, repoUrl, conf.credentials)
