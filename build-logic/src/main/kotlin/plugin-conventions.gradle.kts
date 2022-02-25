@@ -18,7 +18,6 @@ import org.gradle.plugins.ide.idea.model.IdeaModel
 
 plugins {
   id("org.gradle.kotlin.kotlin-dsl")
-  `jvm-test-suite`
 
   `maven-publish`
   id("com.gradle.plugin-publish")
