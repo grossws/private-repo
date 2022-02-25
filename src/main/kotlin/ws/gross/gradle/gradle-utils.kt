@@ -39,7 +39,7 @@ fun DependencyHandler.plugin(pluginId: String, version: String) =
   create("$pluginId:$pluginId.gradle.plugin:$version")
 @Suppress("UnstableApiUsage")
 fun DependencyHandler.plugin(plugin: Provider<PluginDependency>) =
-  plugin.get().run { plugin(pluginId, version.displayName) }
+  plugin.get().run { create("$pluginId:$pluginId.gradle.plugin:${version.requiredVersion}") }
 
 fun String.parsePublishTaskInfo(): PublishTaskInfo? =
   publishTaskNameRegex.matchEntire(this)?.destructured?.let { (p, r) ->
