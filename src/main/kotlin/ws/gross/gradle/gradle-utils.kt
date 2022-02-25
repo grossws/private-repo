@@ -16,12 +16,18 @@
 
 package ws.gross.gradle
 
+import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Project
+import org.gradle.api.artifacts.MutableVersionConstraint
+import org.gradle.api.artifacts.VersionConstraint
+import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.api.initialization.Settings
+import org.gradle.api.initialization.dsl.VersionCatalogBuilder
 import org.gradle.api.internal.FeaturePreviews
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.support.serviceOf
+import org.gradle.plugin.use.PluginDependency
 import org.gradle.util.GradleVersion
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
@@ -29,6 +35,13 @@ import java.lang.invoke.MethodType
 inline fun Project.ifNotDslAccessors(block: () -> Unit) {
   if (project.name != "gradle-kotlin-dsl-accessors") block.invoke()
 }
+
+// See https://github.com/gradle/gradle/issues/18620
+fun DependencyHandler.plugin(pluginId: String, version: String) =
+  create("$pluginId:$pluginId.gradle.plugin:$version")
+@Suppress("UnstableApiUsage")
+fun DependencyHandler.plugin(plugin: Provider<PluginDependency>) =
+  plugin.get().run { plugin(pluginId, version.displayName) }
 
 fun String.parsePublishTaskInfo(): PublishTaskInfo? =
   publishTaskNameRegex.matchEntire(this)?.destructured?.let { (p, r) ->
@@ -47,6 +60,13 @@ fun isVersionCatalogsExperimental(): Boolean {
 
 fun Settings.isVersionCatalogsEnabled() = GRADLE_7_4_PLUS
     || (isVersionCatalogsSupported() && VersionCatalogsUtil.isFeatureEnabled(this))
+
+fun MutableVersionConstraint.fromConstraint(v: VersionConstraint) {
+  if (v.preferredVersion.isNotEmpty()) prefer(v.preferredVersion)
+  if (v.requiredVersion.isNotEmpty()) require(v.requiredVersion)
+  if (v.strictVersion.isNotEmpty()) strictly(v.strictVersion)
+  if (v.rejectedVersions.isNotEmpty()) reject(*v.rejectedVersions.toTypedArray())
+}
 
 internal object ProviderUtil {
   @JvmStatic
