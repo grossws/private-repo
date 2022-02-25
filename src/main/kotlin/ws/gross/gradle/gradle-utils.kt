@@ -16,14 +16,12 @@
 
 package ws.gross.gradle
 
-import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.MutableVersionConstraint
 import org.gradle.api.artifacts.VersionConstraint
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.api.initialization.Settings
-import org.gradle.api.initialization.dsl.VersionCatalogBuilder
 import org.gradle.api.internal.FeaturePreviews
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.support.serviceOf
