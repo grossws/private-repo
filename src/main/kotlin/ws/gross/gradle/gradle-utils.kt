@@ -24,6 +24,7 @@ import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.api.initialization.Settings
 import org.gradle.api.internal.FeaturePreviews
 import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderConvertible
 import org.gradle.kotlin.dsl.support.serviceOf
 import org.gradle.plugin.use.PluginDependency
 import org.gradle.util.GradleVersion
@@ -34,12 +35,17 @@ inline fun Project.ifNotDslAccessors(block: () -> Unit) {
   if (project.name != "gradle-kotlin-dsl-accessors") block.invoke()
 }
 
-// See https://github.com/gradle/gradle/issues/18620
+// See https://github.com/gradle/gradle/issues/18620 and https://github.com/gradle/gradle/pull/18684
 fun DependencyHandler.plugin(pluginId: String, version: String) =
   create("$pluginId:$pluginId.gradle.plugin:$version")
+
 @Suppress("UnstableApiUsage")
 fun DependencyHandler.plugin(plugin: Provider<PluginDependency>) =
   plugin.get().run { create("$pluginId:$pluginId.gradle.plugin:${version.requiredVersion}") }
+
+@Suppress("UnstableApiUsage")
+fun DependencyHandler.plugin(plugin: ProviderConvertible<PluginDependency>) =
+  plugin.asProvider().get().run { create("$pluginId:$pluginId.gradle.plugin:${version.requiredVersion}") }
 
 fun String.parsePublishTaskInfo(): PublishTaskInfo? =
   publishTaskNameRegex.matchEntire(this)?.destructured?.let { (p, r) ->
