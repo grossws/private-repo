@@ -14,15 +14,29 @@
  * limitations under the License.
  */
 
+import org.gradle.kotlin.dsl.support.expectedKotlinDslPluginsVersion
+
 plugins {
   `kotlin-dsl`
 }
 
 dependencies {
-  implementation(kotlin("gradle-plugin"))
-  implementation(kotlin("sam-with-receiver"))
+  implementation(plugin("org.gradle.kotlin.kotlin-dsl", expectedKotlinDslPluginsVersion))
+  implementation(plugin(libs.plugins.gradle.publish))
+  implementation(plugin(libs.plugins.nebula.release))
+}
 
-  implementation("com.gradle.publish:plugin-publish-plugin:0.14.0")
+kotlinDslPluginOptions {
+  jvmTarget.set("11")
+}
 
-  implementation("com.netflix.nebula:nebula-release-plugin:15.3.1")
+tasks.withType<JavaCompile>().configureEach {
+  options.release.set(11)
+}
+
+fun DependencyHandler.plugin(id: String, version: String) = create("$id:$id.gradle.plugin:$version")
+
+@Suppress("UnstableApiUsage")
+fun DependencyHandler.plugin(plugin: Provider<PluginDependency>) = plugin.get().run {
+  plugin(pluginId, version.displayName)
 }

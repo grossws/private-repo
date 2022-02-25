@@ -14,16 +14,36 @@
  * limitations under the License.
  */
 
+import org.gradle.plugins.ide.idea.model.IdeaModel
+
 plugins {
-  id("kotlin-conventions")
-  `java-gradle-plugin`
+  id("org.gradle.kotlin.kotlin-dsl")
+  `jvm-test-suite`
+
   `maven-publish`
   id("com.gradle.plugin-publish")
   id("nebula.release")
+
+  idea
 }
 
-gradlePlugin {
-  testSourceSets(sourceSets["functionalTest"])
+val javaRelease = 11
+tasks.withType<JavaCompile>().configureEach { options.release.set(javaRelease) }
+kotlinDslPluginOptions { jvmTarget.set(javaRelease.toString()) }
+
+@Suppress("UnstableApiUsage")
+testing {
+  suites {
+    val test by getting(JvmTestSuite::class)
+    val functionalTest by creating(JvmTestSuite::class) {
+      targets.all {
+        testTask.configure { shouldRunAfter(test) }
+      }
+    }
+
+    tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(functionalTest) }
+    gradlePlugin { testSourceSets(functionalTest.sources) }
+  }
 }
 
 tasks.named<Jar>("jar") {
@@ -32,5 +52,16 @@ tasks.named<Jar>("jar") {
       "Implementation-Title" to "ws.gross.private-repo Gradle plugins",
       "Implementation-Version" to project.version,
     )
+  }
+}
+
+@Suppress("UnstableApiUsage")
+pluginManager.withPlugin("idea") {
+  val functionalTest by testing.suites.getting(JvmTestSuite::class)
+  the<IdeaModel>().module {
+    val sourceSet = functionalTest.sources
+    // using legacy setters since IDEA ignores new ones
+    testSourceDirs = testSourceDirs + sourceSet.allSource.sourceDirectories
+    testResourceDirs = testResourceDirs + sourceSet.resources.sourceDirectories
   }
 }

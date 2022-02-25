@@ -88,11 +88,27 @@ pluginBundle {
   tags = listOf("repository", "private-repository", "nexus", "artifactory")
 }
 
-dependencies {
-  testImplementation(platform("com.fasterxml.jackson:jackson-bom:2.12.2"))
-  testImplementation("com.fasterxml.jackson.core:jackson-databind")
-  testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-  testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-guava")
-  testImplementation("com.github.sya-ri:kgit:1.0.5")
-  testImplementation("nebula.release:nebula.release.gradle.plugin:16.0.0")
+@Suppress("UnstableApiUsage")
+testing {
+  suites {
+    named("test") {
+      dependencies {
+        implementation(plugin(libs.plugins.nebula.release))
+      }
+    }
+
+    withType<JvmTestSuite> {
+      useJUnitJupiter(libs.versions.junit.get())
+
+      dependencies {
+        implementation(project.dependencies.platform(project.dependencies.kotlin("bom", embeddedKotlinVersion)))
+        implementation(libs.assertk.jvm)
+        implementation(libs.kgit)
+        implementation(project.dependencies.platform(libs.jackson.bom))
+        implementation(libs.jackson.databind)
+        implementation(libs.jackson.kotlin)
+        implementation(libs.jackson.guava)
+      }
+    }
+  }
 }
