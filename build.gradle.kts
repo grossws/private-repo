@@ -91,9 +91,9 @@ pluginBundle {
 @Suppress("UnstableApiUsage")
 testing {
   suites {
-    named("test") {
+    val test by existing(JvmTestSuite::class) {
       dependencies {
-        implementation(plugin(libs.plugins.nebula.release))
+        implementation(project.dependencies.plugin(libs.plugins.nebula.release))
       }
     }
 
