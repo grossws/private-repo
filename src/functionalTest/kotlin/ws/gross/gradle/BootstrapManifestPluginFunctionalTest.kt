@@ -73,6 +73,64 @@ class BootstrapManifestPluginFunctionalTest {
     assertThat(result).task(":generateBootstrapManifest").isSuccess()
   }
 
+  @Test
+  fun `can be consumed`() {
+    projectDir.resolve("settings.gradle.kts").appendText("""
+      include("consumer")
+    """.trimIndent())
+
+    val d = "$"
+    projectDir.resolve("consumer").mkdirs()
+    projectDir.resolve("consumer/build.gradle.kts").writeText("""
+      plugins { base }
+
+      val cnf by configurations.creating {
+        isCanBeConsumed = false
+        isCanBeResolved = true
+        attributes {
+          attribute(Category.CATEGORY_ATTRIBUTE, objects.named("manifest"))
+        }
+      }
+
+      dependencies { cnf(project(":")) }
+
+      tasks.register<DumpBootstrapManifests>("dump") {
+        baseDirectory.set(rootProject.layout.projectDirectory)
+        manifests.from(cnf)
+      }
+
+      abstract class DumpBootstrapManifests : DefaultTask() {
+        @get:InputFiles
+        abstract val manifests: ConfigurableFileCollection
+
+        @get:Input
+        abstract val baseDirectory: DirectoryProperty
+
+        @TaskAction
+        fun dump() {
+          manifests.forEach { path ->
+            val relativePath = path.relativeTo(baseDirectory.asFile.get())
+            val manifest = java.util.Properties().apply { path.reader().use { load(it) } }
+            manifest.forEach { k, v ->
+              logger.lifecycle("MANIFEST|${d}relativePath|${d}k|${d}{v.toString().replace("\n", "\\n")}")
+            }
+          }
+        }
+      }
+    """.trimIndent())
+
+    val result = createRunner().withArguments(":consumer:dump").build()
+
+    assertThat(result).task(":generateBootstrapManifest").isSuccess()
+    assertThat(result).task(":consumer:dump").isSuccess()
+    assertThat(result).output().containsAll(
+      "MANIFEST|build/manifest.properties|description|some description",
+      "MANIFEST|build/manifest.properties|version|1.2",
+      "MANIFEST|build/manifest.properties|pluginIds|some.plugin",
+      "MANIFEST|build/manifest.properties|catalogIds|catAlias=some.group:module"
+    )
+  }
+
   @BeforeEach
   fun baseProject() {
     projectDir.resolve("settings.gradle.kts").writeText("""
