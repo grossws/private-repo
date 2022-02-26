@@ -38,9 +38,9 @@ internal class BootstrapManifestAction(private val name: String) : Action<Settin
     val version = bootstrap.version.get().displayName
 
     pluginManagement.plugins {
-      bootstrap.pluginIds.get().forEach {
-        logger.info("Adding plugin $it $version")
-        id(it) version version
+      bootstrap.pluginIds.get().forEach { pluginId ->
+        logger.info("Adding plugin $pluginId $version")
+        id(pluginId) version version
       }
     }
 

@@ -39,7 +39,7 @@ class BootstrapManifestPluginFunctionalTest {
     assertThat(manifest).all {
       exists()
       text().asProperties().all {
-        key("version").isEqualTo("{strictly [1.2,2.0); reject 1.3}")
+        key("version").isEqualTo("1.2")
         key("description").isEqualTo("some description")
         key("pluginIds").isEqualTo("some.plugin")
         key("catalogIds").isEqualTo("catAlias=some.group:module")
@@ -77,6 +77,7 @@ class BootstrapManifestPluginFunctionalTest {
   fun baseProject() {
     projectDir.resolve("settings.gradle.kts").writeText("""
       rootProject.name = "functional-test"
+
     """.trimIndent())
 
     projectDir.resolve("build.gradle.kts").writeText("""
@@ -85,18 +86,17 @@ class BootstrapManifestPluginFunctionalTest {
       manifest {
         bootstrapManifest {
           description.set("some description")
-          version {
-            strictly("[1.2,2.0)")
-            reject("1.3")
-          }
+          version("1.2")
           plugin("some.plugin")
           catalog("catAlias", "some.group:module")
         }
       }
+
     """.trimIndent())
 
     projectDir.resolve("gradle.properties").writeText("""
       group = test.group
+
     """.trimIndent())
   }
 

@@ -82,11 +82,10 @@ class BootstrapManifestBasePlugin @Inject constructor(
         attribute(Category.CATEGORY_ATTRIBUTE, objects.named("manifest"))
       }
       outgoing {
-        artifact(task.flatMap { it.outputFile }) {
+        artifact(task.map { it.outputFile.get() }) {
           type = "manifest"
           extension = "properties"
           classifier = manifest.name
-          builtBy(task)
         }
       }
     }
