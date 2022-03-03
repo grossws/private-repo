@@ -48,7 +48,9 @@ class BootstrapManifestBasePlugin @Inject constructor(
     pluginManager.apply("base")
 
     if (group.toString().isEmpty()) {
-      throw IllegalArgumentException("Project group required for ws.gross.bootstrap-manifest plugin")
+      ifNotDslAccessors {
+        throw IllegalArgumentException("Project group required for ws.gross.bootstrap-manifest plugin")
+      }
     }
 
     val ext = extensions.create(
