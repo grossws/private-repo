@@ -87,7 +87,6 @@ class BootstrapManifestBasePlugin @Inject constructor(
         artifact(task.map { it.outputFile.get() }) {
           type = "manifest"
           extension = "properties"
-          classifier = manifest.name
         }
       }
     }
