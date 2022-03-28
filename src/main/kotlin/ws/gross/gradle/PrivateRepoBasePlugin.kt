@@ -20,18 +20,28 @@ import org.gradle.api.Plugin
 import org.gradle.api.initialization.Settings
 import org.gradle.api.internal.artifacts.DependencyResolutionServices
 import org.gradle.kotlin.dsl.*
-import org.gradle.kotlin.dsl.support.serviceOf
+import org.gradle.plugin.use.internal.PluginDependencyResolutionServices
 import ws.gross.gradle.extensions.DefaultPrivateRepoExtension
 import ws.gross.gradle.extensions.PrivateRepoExtension
 import java.util.function.Supplier
+import javax.inject.Inject
 
-class PrivateRepoBasePlugin : Plugin<Settings> {
+class PrivateRepoBasePlugin @Inject constructor(
+  private val pluginDependencyResolutionServices: PluginDependencyResolutionServices
+) : Plugin<Settings> {
   override fun apply(settings: Settings) {
     settings.extensions.create(
       PrivateRepoExtension::class,
       "privateRepo",
       DefaultPrivateRepoExtension::class,
-      Supplier { settings.serviceOf<DependencyResolutionServices>() }
+      Supplier { dependencyResolutionServices }
     )
   }
+
+  private val dependencyResolutionServices: DependencyResolutionServices
+    get() = pluginDependencyResolutionServices.let {
+      val getter = it.javaClass.getDeclaredMethod("getDependencyResolutionServices")
+      getter.trySetAccessible()
+      getter.invoke(it) as DependencyResolutionServices
+    }
 }

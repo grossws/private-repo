@@ -65,7 +65,7 @@ class PrivateRepoPluginFunctionalTest {
   @Nested
   inner class NormalUse {
     @ParameterizedTest
-    @ValueSource(strings = ["6.8.3", "7.0", "7.4"])
+    @ValueSource(strings = ["6.8.3", "7.0", "7.4", "7.4.1"])
     fun `sane defaults`(gradleVersion: String) {
       val result = createRunner(gradleVersion).build()
 
@@ -79,7 +79,7 @@ class PrivateRepoPluginFunctionalTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["6.8.3", "7.0", "7.4"])
+    @ValueSource(strings = ["6.8.3", "7.0", "7.4", "7.4.1"])
     fun `correct plugin repos`(gradleVersion: String) {
       val result = createRunner(gradleVersion).build()
 
@@ -195,6 +195,8 @@ class PrivateRepoPluginFunctionalTest {
 
   @Nested
   open inner class BootstrapManifests : BootstrapManifestsBase() {
+    override val gradleVersion = "7.4"
+
     override fun configureBootstrap() {
       projectDir.resolve("settings.gradle.kts").appendText("""
         privateRepo {
@@ -209,6 +211,11 @@ class PrivateRepoPluginFunctionalTest {
     override fun configureBootstrapCatalogs() {
       // no-op
     }
+  }
+
+  @Nested
+  inner class BootstrapManifestsDependencyResolutionServicesRegression : BootstrapManifests() {
+    override val gradleVersion = "7.4.1"
   }
 
   @Nested
