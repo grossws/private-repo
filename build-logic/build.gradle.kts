@@ -26,6 +26,10 @@ dependencies {
   implementation(plugin(libs.plugins.nebula.release))
 }
 
+dependencyLocking {
+  lockAllConfigurations()
+}
+
 kotlinDslPluginOptions {
   jvmTarget.set("11")
 }

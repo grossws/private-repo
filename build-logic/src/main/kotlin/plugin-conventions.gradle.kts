@@ -30,6 +30,10 @@ val javaRelease = 11
 tasks.withType<JavaCompile>().configureEach { options.release.set(javaRelease) }
 kotlinDslPluginOptions { jvmTarget.set(javaRelease.toString()) }
 
+dependencyLocking {
+  lockAllConfigurations()
+}
+
 @Suppress("UnstableApiUsage")
 testing {
   suites {
