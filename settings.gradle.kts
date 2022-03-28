@@ -16,7 +16,6 @@
 
 rootProject.name = "private-repo"
 
-includeBuild("build-logic")
 pluginManagement {
   @Suppress("UnstableApiUsage")
   includeBuild("build-logic")
