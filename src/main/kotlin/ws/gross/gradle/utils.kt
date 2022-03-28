@@ -24,3 +24,6 @@ internal fun String.parsePair(): Pair<String, String> =
 
 internal fun String?.parseMap(): Map<String, String> =
   parseList().associate { it.parsePair() }
+
+internal fun String.toCamelCase() =
+  split("[._-]".toRegex()).joinToString("") { it.capitalize() }.decapitalize()

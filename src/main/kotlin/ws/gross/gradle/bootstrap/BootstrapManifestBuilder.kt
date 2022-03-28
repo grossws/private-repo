@@ -32,6 +32,7 @@ import org.gradle.api.provider.Property
 import org.gradle.kotlin.dsl.*
 import ws.gross.gradle.parseList
 import ws.gross.gradle.parseMap
+import ws.gross.gradle.toCamelCase
 import java.util.Properties
 import java.util.function.Supplier
 import javax.inject.Inject
@@ -74,7 +75,7 @@ open class DefaultBootstrapManifestBuilder @Inject constructor(
   override fun from(dependencyNotation: Any, versionSpec: Action<in MutableVersionConstraint>) {
     val drs = dependencyResolutionServices.get()
 
-    val configurationName = "incomingBootstrapManifestFor${name.capitalize()}"
+    val configurationName = "incomingBootstrapManifestFor${name.toCamelCase().capitalize()}"
     val cnf = drs.configurationContainer.create(configurationName) {
       resolutionStrategy.activateDependencyLocking()
       isCanBeConsumed = false
