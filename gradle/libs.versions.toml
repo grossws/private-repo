@@ -1,11 +1,16 @@
 [versions]
-junit = "5.8.2"
-assertk = "0.23.1"
-jackson = "2.12.2"
+nebula-release = "[16,17)"
+gradle-publish = "[0.20,0.21)"
+
+junit = "[5.8,5.9)"
+assertk = "[0.23,0.24)"
+
+jackson = "[2.12,2.13)"
+kgit = "[1.0,1.1)"
 
 [plugins]
-nebula-release = { id = "nebula.release", version = "16.0.0" }
-gradle-publish = { id = "com.gradle.plugin-publish", version = "0.20.0" }
+nebula-release = { id = "nebula.release", version.ref = "nebula-release" }
+gradle-publish = { id = "com.gradle.plugin-publish", version.ref = "gradle-publish" }
 
 [libraries]
 assertk-jvm = { module = "com.willowtreeapps.assertk:assertk-jvm", version.ref = "assertk" }
@@ -15,4 +20,4 @@ jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
 jackson-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
 jackson-guava = { module = "com.fasterxml.jackson.datatype:jackson-datatype-guava" }
 
-kgit = { module = "com.github.sya-ri:kgit", version = "1.0.5" }
+kgit = { module = "com.github.sya-ri:kgit", version.ref = "kgit" }
