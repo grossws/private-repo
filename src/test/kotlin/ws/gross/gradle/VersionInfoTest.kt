@@ -20,31 +20,45 @@ import assertk.all
 import assertk.assertThat
 import assertk.assertions.*
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.ValueSource
+import org.junit.jupiter.params.provider.CsvSource
 
 class VersionInfoTest {
+  companion object {
+    private val WITH_EXPLICIT_TYPE = mutableSetOf<String>().apply {
+      addAll(VersionInfo.RELEASE_TYPES)
+      remove("final")
+      addAll(listOf("dev", "milestone"))
+    }
+  }
+
   @ParameterizedTest
-  @ValueSource(strings = ["1.2.3", "1.2.3-rc.1", "1.2.3-dev.1+deadbee", "1.2.3-dev.1.uncommitted+deadbee", "1.2.3-dev.1+feature.flag.deadbee", "1.2.3-dev.1.uncommitted+feature.flag.deadbee"])
-  fun `versions parsed successfully`(version: String) {
+  @CsvSource(
+    "1.2.3,                                        true,  final     ",
+    "1.2.3-rc.1,                                   true,  rc        ",
+    "1.2.3-beta.1,                                 true,  beta      ",
+    "1.2.3-alpha.1,                                true,  alpha     ",
+    "1.2.3-milestone.1,                            false, milestone ",
+    "1.2.3-dev.1+deadbee,                          false, dev       ",
+    "1.2.3-dev.1.uncommitted+deadbee,              false, dev       ",
+    "1.2.3-dev.1+feature.flag.deadbee,             false, dev       ",
+    "1.2.3-dev.1.uncommitted+feature.flag.deadbee, false, dev       ",
+  )
+  fun `versions parsed successfully`(version: String, release: Boolean, significant: String) {
     assertThat(version.parseVersionInfo()).isNotNull().all {
       prop("major") { it.major }.isEqualTo(1)
       prop("minor") { it.minor }.isEqualTo(2)
       prop("patch") { it.patch }.isEqualTo(3)
-      prop("release") { it.release }.isNotEqualTo(version.contains("-dev."))
-      prop("significant") { it.significant }.all {
-        if (version == "1.2.3") isEqualTo("final")
-        if (version.contains("-rc.")) isEqualTo("rc")
-        if (version.contains("-dev.")) isEqualTo("dev")
-      }
+      prop("release") { it.release }.isEqualTo(release)
+      prop("significant") { it.significant }.isEqualTo(significant)
       prop("iteration") { it.iteration }.all {
-        if (version.contains("-rc.") || version.contains("-dev.")) isEqualTo(1) else isNull()
+        if (WITH_EXPLICIT_TYPE.any { version.contains("-$it.") }) isEqualTo(1) else isNull()
       }
       prop("dirty") { it.dirty }.isEqualTo(version.contains(".uncommitted+"))
       prop("feature") { it.feature }.all {
         if (version.contains("+feature.")) isEqualTo("feature.flag") else isNull()
       }
       prop("hash") { it.hash }.all {
-        if (version.contains("-dev")) isEqualTo("deadbee") else isNull()
+        if (version.contains("-dev.")) isEqualTo("deadbee") else isNull()
       }
     }
   }

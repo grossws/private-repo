@@ -24,8 +24,12 @@ data class VersionInfo(
   val dirty: Boolean,
   val metadata: String?, val feature: String?, val hash: String?
 ) {
+  companion object {
+    val RELEASE_TYPES = listOf("final", "rc", "beta", "alpha")
+  }
+
   val release: Boolean
-    get() = significant in listOf("final", "rc")
+    get() = significant in RELEASE_TYPES
 }
 
 fun String.parseVersionInfo(): VersionInfo? = versionRegex.matcher(this).let { if (it.matches()) it else null }
@@ -49,7 +53,7 @@ private val versionRegex: Pattern = Pattern.compile("""
   (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)
   (?:
     # -rc.# and similar
-    -(?<type>dev|milestone|rc)\.(?<iteration>\d+)
+    -(?<type>dev|milestone|alpha|beta|rc)\.(?<iteration>\d+)
     # dirty repo marker
     (?:\.(?<dirty>uncommitted))?
     # metadata block
