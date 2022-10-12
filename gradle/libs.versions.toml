@@ -2,7 +2,7 @@
 nebula-release = "[16,17)"
 gradle-publish = "[0.20,0.21)"
 
-junit = "[5.8,5.9)"
+junit = "5.9.1"
 assertk = "[0.23,0.24)"
 
 jackson = "[2.12,2.13)"
