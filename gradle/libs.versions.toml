@@ -1,6 +1,6 @@
 [versions]
 nebula-release = "[16,17)"
-gradle-publish = "[0.20,0.21)"
+gradle-publish = "1.0.0"
 
 junit = "5.9.1"
 assertk = "[0.23,0.24)"

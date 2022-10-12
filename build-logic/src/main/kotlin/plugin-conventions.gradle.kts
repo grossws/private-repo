@@ -19,11 +19,8 @@ import org.gradle.plugins.ide.idea.model.IdeaModel
 plugins {
   id("org.gradle.kotlin.kotlin-dsl")
 
-  `maven-publish`
   id("com.gradle.plugin-publish")
   id("nebula.release")
-
-  idea
 }
 
 tasks.withType<JavaCompile>().configureEach { options.release.set(8) }
