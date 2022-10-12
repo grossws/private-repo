@@ -277,7 +277,7 @@ class PrivateRepoPluginFunctionalTest {
 
       buildscript {
         repositories.mavenCentral()
-        dependencies.classpath("com.fasterxml.jackson.core:jackson-databind:2.12.2")
+        dependencies.classpath("com.fasterxml.jackson.core:jackson-databind:2.13.4")
       }
 
       plugins { id("ws.gross.private-repo") }
