@@ -31,6 +31,8 @@ class NexusPlugin : Plugin<Settings> {
     // decoupling to not fail with obscure message on gradle
     val pluginVersion: String
       get() = PrivateRepoPlugin.pluginVersion
+
+    @Suppress("DEPRECATION")
     private val logger = Logging.getLogger(NexusPlugin::class.java)
   }
 

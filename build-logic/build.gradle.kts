@@ -40,7 +40,6 @@ tasks.withType<JavaCompile>().configureEach {
 
 fun DependencyHandler.plugin(id: String, version: String) = create("$id:$id.gradle.plugin:$version")
 
-@Suppress("UnstableApiUsage")
 fun DependencyHandler.plugin(plugin: Provider<PluginDependency>) = plugin.get().run {
   plugin(pluginId, version.displayName)
 }
