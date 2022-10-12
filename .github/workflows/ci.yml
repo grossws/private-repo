@@ -65,5 +65,5 @@ jobs:
             -Prelease.useLastTag=true
             -Pgradle.publish.key=${{ secrets.GRADLE_PLUGIN_PORTAL_KEY }}
             -Pgradle.publish.secret=${{ secrets.GRADLE_PLUGIN_PORTAL_SECRET }}
-            publishPlugin
+            publishPlugins
           cache-read-only: true

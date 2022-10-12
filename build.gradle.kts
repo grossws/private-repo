@@ -19,7 +19,7 @@ plugins {
 }
 
 gradlePlugin {
-  plugins.create("private-repo") {
+  plugins.create("privateRepo") {
     id = "ws.gross.private-repo"
     displayName = "Settings plugin for private repository configuration and bootstrapping"
     description = """
@@ -29,7 +29,7 @@ gradlePlugin {
     implementationClass = "ws.gross.gradle.PrivateRepoPlugin"
   }
 
-  plugins.create("private-repo-base") {
+  plugins.create("privateRepoBase") {
     id = "ws.gross.private-repo.base"
     displayName = "Settings helper plugin to register privateRepo extension"
     description = """
@@ -39,7 +39,7 @@ gradlePlugin {
     implementationClass = "ws.gross.gradle.PrivateRepoBasePlugin"
   }
 
-  plugins.create("private-repo-bootstrap") {
+  plugins.create("privateRepoBootstrap") {
     id = "ws.gross.private-repo.bootstrap"
     displayName = "Settings plugin to apply bootstrap manifests"
     description = """
@@ -50,7 +50,7 @@ gradlePlugin {
     implementationClass = "ws.gross.gradle.BootstrapPlugin"
   }
 
-  plugins.create("private-repo-publish") {
+  plugins.create("privateRepoPublish") {
     id = "ws.gross.private-repo-publish"
     displayName = "Plugin for private repository publication configuration"
     description = """
@@ -60,7 +60,7 @@ gradlePlugin {
     implementationClass = "ws.gross.gradle.PrivateRepoPublishPlugin"
   }
 
-  plugins.create("bootstrap-manifest") {
+  plugins.create("bootstrapManifest") {
     id = "ws.gross.bootstrap-manifest"
     displayName = "Plugin to generate and publish bootstrap manifest to configure plugins and version catalogs"
     description = """
@@ -71,7 +71,7 @@ gradlePlugin {
     implementationClass = "ws.gross.gradle.BootstrapManifestPlugin"
   }
 
-  plugins.create("release-approve") {
+  plugins.create("releaseApprove") {
     id = "ws.gross.release-approve"
     displayName = "Plugin to add approve task for `nebula.release` plugin rc/final release tasks"
     description = """
@@ -91,7 +91,7 @@ pluginBundle {
 @Suppress("UnstableApiUsage")
 testing {
   suites {
-    val test by existing(JvmTestSuite::class) {
+    named<JvmTestSuite>("test") {
       dependencies {
         implementation(project.dependencies.plugin(libs.plugins.nebula.release))
       }
