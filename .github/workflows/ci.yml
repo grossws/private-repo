@@ -47,7 +47,6 @@ jobs:
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         uses: gradle/gradle-build-action@v2
         with:
-          job-id: jdk11
           arguments: |
             --init-script .github/publishing-ghp.init.gradle.kts
             -Prelease.useLastTag=true
