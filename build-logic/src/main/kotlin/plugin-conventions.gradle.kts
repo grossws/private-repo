@@ -53,6 +53,13 @@ tasks.named<Jar>("jar") {
   }
 }
 
+publishing {
+  repositories.maven {
+    name = "local"
+    setUrl(rootProject.layout.buildDirectory.dir("repo"))
+  }
+}
+
 @Suppress("UnstableApiUsage")
 pluginManager.withPlugin("idea") {
   val functionalTest by testing.suites.getting(JvmTestSuite::class)
