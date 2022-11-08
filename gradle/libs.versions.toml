@@ -1,5 +1,5 @@
 [versions]
-nebula-release = "[16,17)"
+nebula-release = "[17.1,18)"
 gradle-publish = "1.0.0"
 
 junit = "5.9.1"
