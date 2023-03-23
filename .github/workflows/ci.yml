@@ -30,39 +30,46 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup JDK 11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: 11
+          java-version: 17
 
-      - name: Build
+      - name: Setup gradle
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: |
-            -Prelease.useLastTag=${{ startsWith(github.ref, 'refs/tags/v') }}
-            build
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
-      - name: Publish release to GitHub Packages
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: |
-            --init-script .github/publishing-ghp.init.gradle.kts
-            -Prelease.useLastTag=true
-            publish
-          cache-read-only: true
-        env:
-          MAVEN_USERNAME: ${{ github.actor }}
-          MAVEN_PASSWORD: ${{ github.token }}
+      - name: Build
+        run: |
+          ./gradlew build \
+            -Prelease.useLastTag=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Publish release to Gradle Plugin Portal
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: |
+        run: |
+          ./gradlew publishPlugins
             -Prelease.useLastTag=true
-            -Pgradle.publish.key=${{ secrets.GRADLE_PLUGIN_PORTAL_KEY }}
-            -Pgradle.publish.secret=${{ secrets.GRADLE_PLUGIN_PORTAL_SECRET }}
-            publishPlugins
-          cache-read-only: true
+            -Pgradle.publish.key=${{ secrets.gradle_plugin_portal_key }}
+            -Pgradle.publish.secret=${{ secrets.gradle_plugin_portal_secret }}
+
+      - name: Zulip notification
+        uses: zulip/github-actions-zulip/send-message@v1
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && always() }}
+        with:
+          api-key: ${{ secrets.zulip_api_key }}
+          email: ${{ secrets.zulip_email }}
+          organization-url: ${{ secrets.zulip_url }}
+          type: stream
+          to: dev
+          topic: GitHub Notifications
+          content: |
+            **${{ github.repository }}** release ${{ github.ref_name }} *${{ job.status }}*
+
+            Release [`${{ github.ref_name }}`](${{ env.BASE_URL }}/tree/${{ github.ref_name }})
+
+            JDK: *${{ inputs.java-version }}* (${{ inputs.java-distribution }})
+
+            Workflow run ${{ env.BASE_URL }}/actions/runs/${{ github.run_id }}
+        env:
+          BASE_URL: ${{ github.server_url }}/${{ github.repository }}
