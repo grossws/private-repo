@@ -42,7 +42,6 @@ data class NexusConfiguration(
   private val providers: ProviderFactory,
 ) {
   companion object {
-    @Suppress("UnstableApiUsage")
     fun from(providers: ProviderFactory): NexusConfiguration {
       val baseUrl = providers.gradleProperty("nexusUrl")
         .wrappedForUseAtConfigurationTime()

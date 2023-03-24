@@ -47,9 +47,9 @@ class PrivateRepoPluginFunctionalTest {
   inner class Prerequisites {
     @Test
     fun `fails if old gradle`() {
-      val result = createRunner("6.7").buildAndFail()
+      val result = createRunner("7.3").buildAndFail()
 
-      assertThat(result).output().any { it.contains("Only Gradle 6.8+ supported", ignoreCase = true) }
+      assertThat(result).output().any { it.contains("Only Gradle 7.4+ supported", ignoreCase = true) }
     }
 
     @Test
@@ -65,7 +65,7 @@ class PrivateRepoPluginFunctionalTest {
   @Nested
   inner class NormalUse {
     @ParameterizedTest
-    @ValueSource(strings = ["6.8.3", "7.0", "7.4", "7.4.1"])
+    @ValueSource(strings = ["7.4", "7.4.1", "7.6.1","8.0.2"])
     fun `sane defaults`(gradleVersion: String) {
       val result = createRunner(gradleVersion).build()
 
@@ -79,7 +79,7 @@ class PrivateRepoPluginFunctionalTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["6.8.3", "7.0", "7.4", "7.4.1"])
+    @ValueSource(strings = ["7.4", "7.4.1", "7.6.1","8.0.2"])
     fun `correct plugin repos`(gradleVersion: String) {
       val result = createRunner(gradleVersion).build()
 
@@ -216,51 +216,6 @@ class PrivateRepoPluginFunctionalTest {
   @Nested
   inner class BootstrapManifestsDependencyResolutionServicesRegression : BootstrapManifests() {
     override val gradleVersion = "7.4.1"
-  }
-
-  @Nested
-  inner class BootstrapManifestsUnstableCatalogs : BootstrapManifests() {
-    override val gradleVersion = "7.3"
-
-    override fun configureBootstrapCatalogs() {
-      projectDir.resolve("settings.gradle.kts").appendText("""
-        enableFeaturePreview("VERSION_CATALOGS")
-
-      """.trimIndent())
-    }
-  }
-
-  @Nested
-  inner class BootstrapManifestsLegacy : BootstrapManifestsBase() {
-    override fun configureBootstrap() {
-      projectDir.resolve("gradle.properties").appendText("""
-        nexusBootstrap = org.example:manifest:1.0
-
-      """.trimIndent())
-    }
-
-    override fun configureBootstrapCatalogs() {
-      projectDir.resolve("gradle.properties").appendText("""
-        nexusBootstrapCatalogs = true
-
-      """.trimIndent())
-    }
-
-    @Test
-    fun `using nexusBootstrap property gives deprecation warning`() {
-      val result = createRunner(gradleVersion).withArguments("-I", "dummy-repo.init.gradle.kts", "-i", "clean").build()
-
-      assertThat(result).output().any { it.contains("nexusBootstrap property is deprecated") }
-    }
-
-    @Test
-    fun `using nexusBootstrapCatalogs property gives deprecation warning`() {
-      configureBootstrapCatalogs()
-
-      val result = createRunner(gradleVersion).withArguments("-I", "dummy-repo.init.gradle.kts", "-i", "clean").build()
-
-      assertThat(result).output().any { it.contains("nexusBootstrapCatalogs property is deprecated") }
-    }
   }
 
   private fun createRunner(gradleVersion: String? = null) = createRunner(projectDir, gradleVersion)
