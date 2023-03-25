@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import org.gradle.plugins.ide.idea.model.IdeaModel
-
 plugins {
   id("org.gradle.kotlin.kotlin-dsl")
 
@@ -57,16 +55,5 @@ publishing {
   repositories.maven {
     name = "local"
     setUrl(rootProject.layout.buildDirectory.dir("repo"))
-  }
-}
-
-@Suppress("UnstableApiUsage")
-pluginManager.withPlugin("idea") {
-  val functionalTest by testing.suites.getting(JvmTestSuite::class)
-  the<IdeaModel>().module {
-    val sourceSet = functionalTest.sources
-    // using legacy setters since IDEA ignores new ones
-    testSourceDirs = testSourceDirs + sourceSet.allSource.sourceDirectories
-    testResourceDirs = testResourceDirs + sourceSet.resources.sourceDirectories
   }
 }
