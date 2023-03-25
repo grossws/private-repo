@@ -16,6 +16,7 @@
 
 plugins {
   id("plugin-conventions")
+  kotlin("jvm") version embeddedKotlinVersion
 }
 
 gradlePlugin {

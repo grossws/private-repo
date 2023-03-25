@@ -15,8 +15,6 @@
  */
 
 plugins {
-  id("org.gradle.kotlin.kotlin-dsl")
-
   id("com.gradle.plugin-publish")
   id("nebula.release")
 }
