@@ -31,6 +31,7 @@ import org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler.GRADLE_PLU
 import org.junit.jupiter.api.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import java.util.Locale
 
 class PrivateRepoPluginFunctionalTest {
   companion object {
@@ -354,6 +355,6 @@ private fun parseRepos(data: String, prefix: String) = data.lineSequence()
   .toList()
 
 private fun parseDependencyRepos(data: String): List<Repo> = parseRepos(data, "REPO")
-  .sortedBy { it.name.toLowerCase() }
+  .sortedBy { it.name.lowercase(Locale.ROOT) }
 
 private fun parsePluginRepos(data: String): List<Repo> = parseRepos(data, "PLUGIN_REPO")
