@@ -25,6 +25,10 @@ dependencyLocking {
   lockAllConfigurations()
 }
 
+dependencies {
+  compileOnly(kotlin("stdlib-jdk8", embeddedKotlinVersion))
+}
+
 @Suppress("UnstableApiUsage")
 testing {
   suites {
