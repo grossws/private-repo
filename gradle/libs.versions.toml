@@ -1,15 +1,15 @@
 [versions]
-nebula-release = "[17.1,18)"
-gradle-publish = "1.0.0"
+nebula-release = "17.2.0"
+gradle-publish = "1.1.0"
 
 junit = "5.9.1"
-assertk = "[0.23,0.24)"
+assertk = "0.25"
 
-jackson = "[2.13,2.14)"
-kgit = "[1.0,1.1)"
+jackson = "2.14.2"
+kgit = "1.0.5"
 
 [plugins]
-nebula-release = { id = "nebula.release", version.ref = "nebula-release" }
+nebula-release = { id = "com.netflix.nebula.release", version.ref = "nebula-release" }
 gradle-publish = { id = "com.gradle.plugin-publish", version.ref = "gradle-publish" }
 
 [libraries]
