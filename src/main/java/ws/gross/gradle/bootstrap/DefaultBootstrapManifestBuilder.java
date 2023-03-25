@@ -39,6 +39,7 @@ import ws.gross.gradle.utils.GradleUtils;
 
 import static ws.gross.gradle.utils.GradleUtils.parseList;
 import static ws.gross.gradle.utils.GradleUtils.parseMap;
+import static ws.gross.gradle.utils.StringUtils.toUpperCamelCase;
 
 public class DefaultBootstrapManifestBuilder implements NamedBootstrapManifestBuilder {
   private final String name;
@@ -102,7 +103,7 @@ public class DefaultBootstrapManifestBuilder implements NamedBootstrapManifestBu
   public void from(Object dependencyNotation, Action<? super MutableVersionConstraint> versionSpec) {
     DependencyResolutionServices drs = dependencyResolutionServicesSupplier.get();
 
-    String configurationName = "incomingBootstrapManifestFor" + GradleUtils.toUpperCamelCase(name);
+    String configurationName = "incomingBootstrapManifestFor" + toUpperCamelCase(name);
     Configuration cnf = drs.getConfigurationContainer().create(configurationName, c -> {
       c.getResolutionStrategy().activateDependencyLocking();
       c.setCanBeConsumed(false);

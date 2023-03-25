@@ -26,6 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.MethodSource
+import ws.gross.gradle.utils.PublishTaskInfo
 import java.util.stream.Stream
 
 class PublishTaskInfoTest {
@@ -43,7 +44,7 @@ class PublishTaskInfoTest {
   @ParameterizedTest
   @MethodSource("data")
   fun `publish task name parsed correctly`(taskName: String, publication: String, repository: String) {
-    assertThat(taskName.parsePublishTaskInfo()).isNotNull().all {
+    assertThat(PublishTaskInfo.of(taskName).orElse(null)).isNotNull().all {
       prop("publication") { it.publication }.isEqualTo(publication)
       prop("repository") { it.repository }.isEqualTo(repository)
     }
@@ -52,7 +53,7 @@ class PublishTaskInfoTest {
   @Test
   fun `repository name always starts with lowercase`() {
     val pair = "some" to "MavenRepo"
-    assertThat(pair.toPublishTaskName().parsePublishTaskInfo()).isNotNull().all {
+    assertThat(PublishTaskInfo.of(pair.toPublishTaskName()).orElse(null)).isNotNull().all {
       prop("publication") { it.publication }.isEqualTo(pair.first)
       prop("repository") { it.repository }.isEqualTo(pair.second.decapitalize())
     }

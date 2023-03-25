@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Konstantin Gribov
+ * Copyright 2023 Konstantin Gribov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ws.gross.gradle
+package ws.gross.gradle.utils
 
 import assertk.all
 import assertk.assertThat
@@ -44,16 +44,16 @@ class VersionInfoTest {
     "1.2.3-dev.1.uncommitted+feature.flag.deadbee, false, dev       ",
   )
   fun `versions parsed successfully`(version: String, release: Boolean, significant: String) {
-    assertThat(version.parseVersionInfo()).isNotNull().all {
+    assertThat(VersionInfo.of(version).orElse(null)).isNotNull().all {
       prop("major") { it.major }.isEqualTo(1)
       prop("minor") { it.minor }.isEqualTo(2)
       prop("patch") { it.patch }.isEqualTo(3)
-      prop("release") { it.release }.isEqualTo(release)
+      prop("release") { it.isRelease }.isEqualTo(release)
       prop("significant") { it.significant }.isEqualTo(significant)
       prop("iteration") { it.iteration }.all {
         if (WITH_EXPLICIT_TYPE.any { version.contains("-$it.") }) isEqualTo(1) else isNull()
       }
-      prop("dirty") { it.dirty }.isEqualTo(version.contains(".uncommitted+"))
+      prop("dirty") { it.isDirty }.isEqualTo(version.contains(".uncommitted+"))
       prop("feature") { it.feature }.all {
         if (version.contains("+feature.")) isEqualTo("feature.flag") else isNull()
       }

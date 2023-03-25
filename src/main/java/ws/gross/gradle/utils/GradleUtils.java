@@ -23,22 +23,26 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.dsl.RepositoryHandler;
+import org.gradle.api.artifacts.repositories.ArtifactRepository;
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
+import org.gradle.api.credentials.Credentials;
+import org.gradle.api.provider.Provider;
+import org.gradle.authentication.http.BasicAuthentication;
+import org.gradle.internal.artifacts.repositories.AuthenticationSupportedInternal;
 
 public class GradleUtils {
   private static final Action<?> DO_NOTHING = new NoopAction<>();
-  private static final Pattern TO_CAMEL_CASE_PATTERN = Pattern.compile("[._-]");
   private static final Pattern SPLIT_COMMA_PATTERN = Pattern.compile(",");
   private static final Pattern SPLIT_EQUALS_PATTERN = Pattern.compile("=");
 
@@ -50,12 +54,38 @@ public class GradleUtils {
     return (Action<T>) DO_NOTHING;
   }
 
-  public static String toUpperCamelCase(String value) {
-    return toCamelCase(value, true);
+  public static MavenArtifactRepository maven(
+      RepositoryHandler repositories,
+      String repoName,
+      Provider<String> repoUrl,
+      Provider<? extends Credentials> credentials
+  ) {
+    return maven(repositories, repoName, repoUrl, credentials, doNothing());
   }
 
-  public static String toLowerCamelCase(String value) {
-    return toCamelCase(value, false);
+  public static MavenArtifactRepository maven(
+      RepositoryHandler repositories,
+      String repoName,
+      Provider<String> repoUrl,
+      Provider<? extends Credentials> credentials,
+      Action<? super MavenArtifactRepository> configureAction
+  ) {
+    ArtifactRepository repo = repositories.findByName(repoName);
+    if (repo instanceof MavenArtifactRepository) {
+      return (MavenArtifactRepository) repo;
+    } else if (repo != null) {
+      throw new GradleException("Repository with name " + repoName + " is not a MavenArtifactRepository");
+    } else {
+      return repositories.maven(r -> {
+        r.setName(repoName);
+        r.setUrl(repoUrl);
+        if (credentials.isPresent()) {
+          r.authentication(a -> a.create("basic", BasicAuthentication.class));
+          ((AuthenticationSupportedInternal) r).getConfiguredCredentials().set(credentials);
+        }
+        configureAction.execute(r);
+      });
+    }
   }
 
   public static Properties readProperties(Path path) {
@@ -90,13 +120,6 @@ public class GradleUtils {
 
   public static boolean isDslAccessorsGeneration(Project project) {
     return project.getName().equals("gradle-kotlin-dsl-accessors");
-  }
-
-  private static String toCamelCase(String value, boolean firstUpper) {
-    String result = TO_CAMEL_CASE_PATTERN.splitAsStream(value)
-        .map(p -> Character.toUpperCase(p.charAt(0)) + p.substring(1).toLowerCase(Locale.ROOT))
-        .collect(Collectors.joining(""));
-    return firstUpper ? result : (Character.toLowerCase(result.charAt(0)) + result.substring(1));
   }
 
   public static class NoopAction<T> implements Action<T>, Serializable {

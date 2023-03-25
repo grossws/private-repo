@@ -16,11 +16,10 @@
 
 import org.gradle.api.Action
 import org.gradle.api.initialization.Settings
-import org.gradle.kotlin.dsl.*
 import ws.gross.gradle.extensions.PrivateRepoExtension
 
 val Settings.privateRepo: PrivateRepoExtension
-  get() = the()
+  get() = extensions.getByType(PrivateRepoExtension::class.java)
 
 fun Settings.privateRepo(spec: Action<in PrivateRepoExtension>) =
   spec.execute(privateRepo)

@@ -27,15 +27,15 @@ import org.gradle.api.logging.Logging;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
 import ws.gross.gradle.BootstrapPlugin;
-import ws.gross.gradle.NexusConfiguration;
+import ws.gross.gradle.utils.NexusConfiguration;
 import ws.gross.gradle.PrivateRepoBasePlugin;
 import ws.gross.gradle.PrivateRepoPlugin;
 import ws.gross.gradle.utils.GradleUtils;
 
 import static org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME;
 import static org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler.GRADLE_PLUGIN_PORTAL_REPO_NAME;
-import static ws.gross.gradle.RepositoriesKt.NEXUS_REPO_NAME;
-import static ws.gross.gradle.RepositoriesKt.maven;
+import static ws.gross.gradle.utils.GradleUtils.maven;
+import static ws.gross.gradle.utils.NexusConfiguration.NEXUS_REPO_NAME;
 
 public class PrivateRepoPluginImpl implements Plugin<Settings> {
   private static final Logger logger = Logging.getLogger(PrivateRepoPluginImpl.class);
@@ -52,7 +52,7 @@ public class PrivateRepoPluginImpl implements Plugin<Settings> {
 
     @SuppressWarnings("UnstableApiUsage")
     ProviderFactory providers = settings.getProviders();
-    conf = NexusConfiguration.Companion.from(providers);
+    conf = NexusConfiguration.from(providers);
     repo = providers.gradleProperty("nexusRepo").orElse("public");
 
     if (!conf.getBaseUrl().isPresent()) {
@@ -72,7 +72,7 @@ public class PrivateRepoPluginImpl implements Plugin<Settings> {
 
       Provider<String> repoUrl = conf.repoUrl(repo);
       logger.info("Adding {}({}) to pluginManagement", NEXUS_REPO_NAME, repoUrl.get());
-      maven(rh, NEXUS_REPO_NAME, repoUrl, conf.getCredentials(), GradleUtils.doNothing());
+      maven(rh, NEXUS_REPO_NAME, repoUrl, conf.getCredentials());
 
       logger.info("Adding mavenCentral to pluginManagement");
       rh.mavenCentral();
@@ -116,7 +116,7 @@ public class PrivateRepoPluginImpl implements Plugin<Settings> {
       if (exclusive) {
         logger.info("Adding exclusive {}({}) to dependencyResolutionManagement", NEXUS_REPO_NAME, repoUrl.get());
         rh.exclusiveContent(ecr -> {
-          ecr.forRepository(() -> maven(rh, NEXUS_REPO_NAME, repoUrl, conf.getCredentials(), GradleUtils.doNothing()));
+          ecr.forRepository(() -> maven(rh, NEXUS_REPO_NAME, repoUrl, conf.getCredentials()));
           ecr.filter(cd -> {
             groups.forEach(cd::includeGroup);
             groupRegexes.forEach(cd::includeGroupByRegex);
@@ -124,7 +124,7 @@ public class PrivateRepoPluginImpl implements Plugin<Settings> {
         });
       } else {
         logger.info("Adding {}({}) to dependencyResolutionManagement", NEXUS_REPO_NAME, repoUrl.get());
-        maven(rh, NEXUS_REPO_NAME, repoUrl, conf.getCredentials(), GradleUtils.doNothing());
+        maven(rh, NEXUS_REPO_NAME, repoUrl, conf.getCredentials());
       }
     });
   }

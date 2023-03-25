@@ -16,8 +16,6 @@
 
 package ws.gross.gradle;
 
-import java.util.Optional;
-
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
@@ -25,11 +23,14 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository;
-import ws.gross.gradle.utils.GradleUtils;
+import ws.gross.gradle.utils.NexusConfiguration;
+import ws.gross.gradle.utils.PublishTaskInfo;
+import ws.gross.gradle.utils.VersionInfo;
 
-import static ws.gross.gradle.Gradle_utilsKt.parsePublishTaskInfo;
-import static ws.gross.gradle.RepositoriesKt.*;
-import static ws.gross.gradle.Version_utilsKt.parseVersionInfo;
+import static ws.gross.gradle.utils.GradleUtils.maven;
+import static ws.gross.gradle.utils.NexusConfiguration.RELEASES_REPO_NAME;
+import static ws.gross.gradle.utils.NexusConfiguration.SNAPSHOTS_REPO_NAME;
+
 
 public class PrivateRepoPublishPlugin implements Plugin<Project> {
   private NexusConfiguration conf;
@@ -40,18 +41,18 @@ public class PrivateRepoPublishPlugin implements Plugin<Project> {
     PublishingExtension publishing = project.getExtensions().getByType(PublishingExtension.class);
 
     ProviderFactory providers = project.getProviders();
-    conf = NexusConfiguration.Companion.from(providers);
+    conf = NexusConfiguration.from(providers);
 
     Provider<String> releasesRepo = providers.gradleProperty("nexusReleasesRepo").orElse("releases");
     Provider<String> snapshotsRepo = providers.gradleProperty("nexusSnapshotsRepo").orElse("snapshots");
 
     publishing.repositories(rh -> {
-      maven(rh, RELEASES_REPO_NAME, conf.repoUrl(releasesRepo), conf.getCredentials(), GradleUtils.doNothing());
-      maven(rh, SNAPSHOTS_REPO_NAME, conf.repoUrl(snapshotsRepo), conf.getCredentials(), GradleUtils.doNothing());
+      maven(rh, RELEASES_REPO_NAME, conf.repoUrl(releasesRepo), conf.getCredentials());
+      maven(rh, SNAPSHOTS_REPO_NAME, conf.repoUrl(snapshotsRepo), conf.getCredentials());
     });
 
     project.getTasks().withType(PublishToMavenRepository.class).configureEach(t -> {
-      String repositoryName = Optional.ofNullable(parsePublishTaskInfo(t.getName())).map(PublishTaskInfo::getRepository).orElse(null);
+      String repositoryName = PublishTaskInfo.of(t.getName()).map(PublishTaskInfo::getRepository).orElse(null);
       if (repositoryName == null) {
         return;
       }
@@ -59,14 +60,14 @@ public class PrivateRepoPublishPlugin implements Plugin<Project> {
       RepositoryHandler repos = publishing.getRepositories();
       if (repositoryName.equals(RELEASES_REPO_NAME) || repositoryName.equals(SNAPSHOTS_REPO_NAME)) {
         t.onlyIf(s -> {
-          VersionInfo versionInfo = parseVersionInfo(project.getVersion().toString());
+          VersionInfo versionInfo = VersionInfo.of(project.getVersion().toString()).orElse(null);
           if (versionInfo == null) {
             project.getLogger().warn("Can't parse project version {}", project.getVersion());
             return false;
           }
 
-          return (t.getRepository() == repos.getByName(RELEASES_REPO_NAME) && versionInfo.getRelease())
-                 || (t.getRepository() == repos.getByName(SNAPSHOTS_REPO_NAME) && !versionInfo.getRelease());
+          return (t.getRepository() == repos.getByName(RELEASES_REPO_NAME) && versionInfo.isRelease())
+                 || (t.getRepository() == repos.getByName(SNAPSHOTS_REPO_NAME) && !versionInfo.isRelease());
         });
       }
     });
