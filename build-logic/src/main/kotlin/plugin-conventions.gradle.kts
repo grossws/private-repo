@@ -28,8 +28,18 @@ dependencyLocking {
 @Suppress("UnstableApiUsage")
 testing {
   suites {
-    val test by getting(JvmTestSuite::class)
+    val libs = project.the<VersionCatalogsExtension>().named("libs")
+    val junitVersion = libs.findVersion("junit")
+      .orElseThrow { NoSuchElementException("junit version not found in the version catalog")  }
+      .requiredVersion
+
+    val test by getting(JvmTestSuite::class) {
+      useJUnitJupiter(junitVersion)
+    }
+
     val functionalTest by creating(JvmTestSuite::class) {
+      useJUnitJupiter(junitVersion)
+
       targets.all {
         testTask.configure { shouldRunAfter(test) }
       }
