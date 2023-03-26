@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
@@ -38,8 +39,12 @@ import org.gradle.api.artifacts.repositories.ArtifactRepository;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.credentials.Credentials;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderFactory;
 import org.gradle.authentication.http.BasicAuthentication;
 import org.gradle.internal.artifacts.repositories.AuthenticationSupportedInternal;
+
+import static ws.gross.gradle.utils.StringUtils.capitalize;
+import static ws.gross.gradle.utils.StringUtils.toSnakeCase;
 
 public class GradleUtils {
   private static final Action<?> DO_NOTHING = new NoopAction<>();
@@ -52,6 +57,20 @@ public class GradleUtils {
   @SuppressWarnings("unchecked")
   public static <T> Action<T> doNothing() {
     return (Action<T>) DO_NOTHING;
+  }
+
+  public static String privateRepoPrefix(ProviderFactory providers) {
+    return rawGradlePropertyOrEnvVar(providers, "privateRepoPrefix").getOrElse("nexus");
+  }
+
+  public static Provider<String> gradlePropertyOrEnvVar(ProviderFactory providers, String name) {
+    return rawGradlePropertyOrEnvVar(providers, privateRepoPrefix(providers) + capitalize(name));
+  }
+
+  public static Provider<String> rawGradlePropertyOrEnvVar(ProviderFactory providers, String name) {
+    Provider<String> property = providers.gradleProperty(name);
+    Provider<String> envVar = providers.environmentVariable(toSnakeCase(name).toUpperCase(Locale.ROOT));
+    return property.orElse(envVar);
   }
 
   public static MavenArtifactRepository maven(

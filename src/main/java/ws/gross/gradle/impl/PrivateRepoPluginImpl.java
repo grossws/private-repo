@@ -27,14 +27,14 @@ import org.gradle.api.logging.Logging;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
 import ws.gross.gradle.BootstrapPlugin;
-import ws.gross.gradle.utils.NexusConfiguration;
 import ws.gross.gradle.PrivateRepoBasePlugin;
 import ws.gross.gradle.PrivateRepoPlugin;
 import ws.gross.gradle.utils.GradleUtils;
+import ws.gross.gradle.utils.NexusConfiguration;
 
 import static org.gradle.api.artifacts.ArtifactRepositoryContainer.DEFAULT_MAVEN_CENTRAL_REPO_NAME;
 import static org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler.GRADLE_PLUGIN_PORTAL_REPO_NAME;
-import static ws.gross.gradle.utils.GradleUtils.maven;
+import static ws.gross.gradle.utils.GradleUtils.*;
 import static ws.gross.gradle.utils.NexusConfiguration.NEXUS_REPO_NAME;
 
 public class PrivateRepoPluginImpl implements Plugin<Settings> {
@@ -53,10 +53,11 @@ public class PrivateRepoPluginImpl implements Plugin<Settings> {
     @SuppressWarnings("UnstableApiUsage")
     ProviderFactory providers = settings.getProviders();
     conf = NexusConfiguration.from(providers);
-    repo = providers.gradleProperty("nexusRepo").orElse("public");
+    repo = gradlePropertyOrEnvVar(providers, "repo").orElse("public");
 
     if (!conf.getBaseUrl().isPresent()) {
-      throw new GradleException("nexusUrl should be defined in gradle properties");
+      String prefix = privateRepoPrefix(providers);
+      throw new GradleException(prefix + "Url should be defined in gradle properties");
     }
 
     configurePluginRepos();
@@ -86,12 +87,12 @@ public class PrivateRepoPluginImpl implements Plugin<Settings> {
   private void configureRepos() {
     ProviderFactory providers = settings.getProviders();
 
-    List<String> groups = providers.gradleProperty("nexusGroups")
+    List<String> groups = gradlePropertyOrEnvVar(providers, "groups")
         .map(GradleUtils::parseList)
         .orElse(Collections.emptyList())
         .get();
 
-    List<String> groupRegexes = providers.gradleProperty("nexusGroupRegexes")
+    List<String> groupRegexes = gradlePropertyOrEnvVar(providers,"groupRegexes")
         .map(GradleUtils::parseList)
         .orElse(conf.getDefaultGroupRegex())
         .get();
@@ -108,7 +109,7 @@ public class PrivateRepoPluginImpl implements Plugin<Settings> {
       }
 
       Provider<String> repoUrl = conf.repoUrl(repo);
-      boolean exclusive = providers.gradleProperty("nexusExclusive")
+      boolean exclusive = gradlePropertyOrEnvVar(providers,"exclusive")
           .map(Boolean::valueOf)
           .orElse(false)
           .get();

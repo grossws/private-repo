@@ -25,6 +25,9 @@ import org.gradle.api.credentials.PasswordCredentials;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
 
+import static ws.gross.gradle.utils.GradleUtils.gradlePropertyOrEnvVar;
+import static ws.gross.gradle.utils.GradleUtils.privateRepoPrefix;
+
 public class NexusConfiguration {
   public static final String NEXUS_REPO_NAME = "nexus";
 
@@ -47,9 +50,9 @@ public class NexusConfiguration {
   }
 
   public static NexusConfiguration from(ProviderFactory providers) {
-    Provider<String> baseUrl = providers.gradleProperty("nexusUrl");
+    Provider<String> baseUrl = gradlePropertyOrEnvVar(providers, "url");
 
-    Boolean enabled = providers.gradleProperty("nexusDefaultGroupRegex")
+    Boolean enabled = gradlePropertyOrEnvVar(providers, "defaultGroupRegex")
         .map(Boolean::getBoolean).orElse(true).get();
     Provider<String> regex = baseUrl.map(uri -> {
       String[] parts = URI.create(uri).getHost().split("\\.");
@@ -62,9 +65,10 @@ public class NexusConfiguration {
     });
     Provider<List<String>> defaultGroupRegex = regex.map(r -> enabled ? Collections.singletonList(r) : Collections.emptyList());
 
+    // TODO: support credentials from env vars
     return new NexusConfiguration(
         baseUrl,
-        providers.credentials(PasswordCredentials.class, "nexus"),
+        providers.credentials(PasswordCredentials.class, privateRepoPrefix(providers)),
         defaultGroupRegex
     );
   }

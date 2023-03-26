@@ -27,6 +27,7 @@ import ws.gross.gradle.utils.NexusConfiguration;
 import ws.gross.gradle.utils.PublishTaskInfo;
 import ws.gross.gradle.utils.VersionInfo;
 
+import static ws.gross.gradle.utils.GradleUtils.gradlePropertyOrEnvVar;
 import static ws.gross.gradle.utils.GradleUtils.maven;
 import static ws.gross.gradle.utils.NexusConfiguration.RELEASES_REPO_NAME;
 import static ws.gross.gradle.utils.NexusConfiguration.SNAPSHOTS_REPO_NAME;
@@ -43,8 +44,8 @@ public class PrivateRepoPublishPlugin implements Plugin<Project> {
     ProviderFactory providers = project.getProviders();
     conf = NexusConfiguration.from(providers);
 
-    Provider<String> releasesRepo = providers.gradleProperty("nexusReleasesRepo").orElse("releases");
-    Provider<String> snapshotsRepo = providers.gradleProperty("nexusSnapshotsRepo").orElse("snapshots");
+    Provider<String> releasesRepo = gradlePropertyOrEnvVar(providers, "releasesRepo").orElse("releases");
+    Provider<String> snapshotsRepo = gradlePropertyOrEnvVar(providers, "snapshotsRepo").orElse("snapshots");
 
     publishing.repositories(rh -> {
       maven(rh, RELEASES_REPO_NAME, conf.repoUrl(releasesRepo), conf.getCredentials());

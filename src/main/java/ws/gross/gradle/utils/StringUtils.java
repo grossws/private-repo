@@ -25,12 +25,22 @@ import javax.annotation.Nullable;
 public class StringUtils {
   private static final Pattern TO_CAMEL_CASE_PATTERN = Pattern.compile("[._-]");
 
-  public static String toUpperCamelCase(String value) {
+  private static final Pattern TO_SNAKE_CASE_PATTERN = Pattern.compile("(?<=[a-z])([A-Z0-9])");
+
+  @Nullable
+  public static String toUpperCamelCase(@Nullable String value) {
     return toCamelCase(value, true);
   }
 
-  public static String toLowerCamelCase(String value) {
+  @Nullable
+  public static String toLowerCamelCase(@Nullable String value) {
     return toCamelCase(value, false);
+  }
+
+  @Nullable
+  public static String toSnakeCase(@Nullable String value) {
+    return value == null ? null
+        : TO_SNAKE_CASE_PATTERN.matcher(value).replaceAll("_$1").toLowerCase(Locale.ROOT);
   }
 
   public static String capitalize(@Nullable String value) {
@@ -62,10 +72,12 @@ public class StringUtils {
     return value != null && value.isEmpty() ? null : value;
   }
 
-  private static String toCamelCase(String value, boolean firstUpper) {
+  @Nullable
+  private static String toCamelCase(@Nullable String value, boolean firstUpper) {
+    if (value == null) return null;
     String result = TO_CAMEL_CASE_PATTERN.splitAsStream(value)
         .map(p -> capitalize(p.toLowerCase(Locale.ROOT)))
         .collect(Collectors.joining(""));
-    return firstUpper ? result : capitalize(result);
+    return firstUpper ? result : decapitalize(result);
   }
 }
