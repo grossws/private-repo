@@ -16,6 +16,7 @@
 
 import org.gradle.api.Action
 import org.gradle.api.initialization.Settings
+import ws.gross.gradle.PrivateRepoPlugin
 import ws.gross.gradle.extensions.PrivateRepoExtension
 
 val Settings.privateRepo: PrivateRepoExtension
@@ -23,3 +24,6 @@ val Settings.privateRepo: PrivateRepoExtension
 
 fun Settings.privateRepo(spec: Action<in PrivateRepoExtension>) =
   spec.execute(privateRepo)
+
+val PrivateRepoPlugin.pluginVersion: String
+  get() = PrivateRepoPlugin.getPluginVersion()
