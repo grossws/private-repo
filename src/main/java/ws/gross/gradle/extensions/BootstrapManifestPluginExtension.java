@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Konstantin Gribov
+ * Copyright 2023 Konstantin Gribov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-import org.gradle.api.artifacts.dsl.DependencyHandler
-import org.gradle.api.provider.Provider
-import org.gradle.plugin.use.PluginDependency
+package ws.gross.gradle.extensions;
 
-fun DependencyHandler.plugin(id: String, version: String) = create("$id:$id.gradle.plugin:$version")
+import org.gradle.api.Action;
+import ws.gross.gradle.bootstrap.BootstrapManifestBuilder;
 
-fun DependencyHandler.plugin(plugin: Provider<PluginDependency>) = plugin.get().run {
-  plugin(pluginId, version.displayName)
+public interface BootstrapManifestPluginExtension {
+  void bootstrapManifest(Action<? super BootstrapManifestBuilder> spec);
 }

@@ -25,7 +25,6 @@ import org.gradle.api.component.AdhocComponentWithVariants
 import org.gradle.api.internal.plugins.PluginApplicationException
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.kotlin.dsl.*
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.*
 import ws.gross.gradle.extensions.BootstrapManifestPluginExtension
@@ -102,7 +101,7 @@ class BootstrapManifestPluginTest {
   fun `creates publication when maven-publish plugin applied`() {
     project.pluginManager.apply("maven-publish")
     assertThat(project)
-      .prop("publishing") { it.the<PublishingExtension>() }
+      .prop("publishing") { it.extensions.getByType(PublishingExtension::class.java) }
       .prop("publications") { it.publications }
       .prop("manifestMaven") { it.findByName("manifestMaven") }
       .isNotNull()

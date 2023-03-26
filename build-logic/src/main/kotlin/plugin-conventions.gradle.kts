@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import org.gradle.plugins.ide.idea.model.IdeaModel
-
 plugins {
-  id("org.gradle.kotlin.kotlin-dsl")
-
   id("com.gradle.plugin-publish")
   id("nebula.release")
 }
@@ -29,11 +25,25 @@ dependencyLocking {
   lockAllConfigurations()
 }
 
+dependencies {
+  compileOnly(kotlin("stdlib-jdk8", embeddedKotlinVersion))
+}
+
 @Suppress("UnstableApiUsage")
 testing {
   suites {
-    val test by getting(JvmTestSuite::class)
+    val libs = project.the<VersionCatalogsExtension>().named("libs")
+    val junitVersion = libs.findVersion("junit")
+      .orElseThrow { NoSuchElementException("junit version not found in the version catalog")  }
+      .requiredVersion
+
+    val test by getting(JvmTestSuite::class) {
+      useJUnitJupiter(junitVersion)
+    }
+
     val functionalTest by creating(JvmTestSuite::class) {
+      useJUnitJupiter(junitVersion)
+
       targets.all {
         testTask.configure { shouldRunAfter(test) }
       }
@@ -57,16 +67,5 @@ publishing {
   repositories.maven {
     name = "local"
     setUrl(rootProject.layout.buildDirectory.dir("repo"))
-  }
-}
-
-@Suppress("UnstableApiUsage")
-pluginManager.withPlugin("idea") {
-  val functionalTest by testing.suites.getting(JvmTestSuite::class)
-  the<IdeaModel>().module {
-    val sourceSet = functionalTest.sources
-    // using legacy setters since IDEA ignores new ones
-    testSourceDirs = testSourceDirs + sourceSet.allSource.sourceDirectories
-    testResourceDirs = testResourceDirs + sourceSet.resources.sourceDirectories
   }
 }

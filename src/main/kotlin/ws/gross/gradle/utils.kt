@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Konstantin Gribov
+ * Copyright 2023 Konstantin Gribov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,30 @@
 
 package ws.gross.gradle
 
-internal fun String?.parseList(): List<String> =
-  (this ?: "").split(',').map { it.trim() }.filterNot { it.isEmpty() }
+import org.gradle.api.artifacts.VersionCatalog
+import org.gradle.api.artifacts.dsl.DependencyHandler
+import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderConvertible
+import org.gradle.plugin.use.PluginDependency
 
-internal fun String.parsePair(): Pair<String, String> =
-  split('=', limit = 2).map { it.trim() }.let { it[0] to it[1] }
+fun DependencyHandler.plugin(id: String, version: String) = create("$id:$id.gradle.plugin:$version")
 
-internal fun String?.parseMap(): Map<String, String> =
-  parseList().associate { it.parsePair() }
+fun DependencyHandler.plugin(plugin: Provider<PluginDependency>) = plugin.get().run {
+  plugin(pluginId, version.displayName)
+}
 
-internal fun String.toCamelCase() =
-  split("[._-]".toRegex()).joinToString("") { it.capitalize() }.decapitalize()
+fun DependencyHandler.plugin(plugin: ProviderConvertible<PluginDependency>) = plugin.asProvider().get().run {
+  plugin(pluginId, version.displayName)
+}
+
+fun VersionCatalog.getVersion(alias: String) =
+  findVersion(alias).orElseThrow { NoSuchElementException("version $alias not found in the version catalog $name") }
+
+fun VersionCatalog.getPlugin(alias: String) =
+  findPlugin(alias).orElseThrow { NoSuchElementException("plugin $alias not found in the version catalog $name") }
+
+fun VersionCatalog.getLibrary(alias: String) =
+  findLibrary(alias).orElseThrow { NoSuchElementException("library $alias not found in the version catalog $name") }
+
+fun VersionCatalog.getBundle(alias: String) =
+  findBundle(alias).orElseThrow { NoSuchElementException("bundle $alias not found in the version catalog $name") }

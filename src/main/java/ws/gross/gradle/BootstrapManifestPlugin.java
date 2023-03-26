@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Konstantin Gribov
+ * Copyright 2023 Konstantin Gribov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-import org.gradle.api.artifacts.dsl.DependencyHandler
-import org.gradle.api.provider.Provider
-import org.gradle.plugin.use.PluginDependency
+package ws.gross.gradle;
 
-fun DependencyHandler.plugin(id: String, version: String) = create("$id:$id.gradle.plugin:$version")
+import org.gradle.api.Plugin;
+import org.gradle.api.Project;
 
-fun DependencyHandler.plugin(plugin: Provider<PluginDependency>) = plugin.get().run {
-  plugin(pluginId, version.displayName)
+public class BootstrapManifestPlugin implements Plugin<Project> {
+  @Override
+  public void apply(Project project) {
+    project.getLogger().info("Applying ws.gross.bootstrap-manifest plugin");
+    project.getPluginManager().apply(BootstrapManifestBasePlugin.class);
+    project.getPluginManager().apply("maven-publish");
+  }
 }

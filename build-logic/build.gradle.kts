@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-import org.gradle.kotlin.dsl.support.expectedKotlinDslPluginsVersion
-
 plugins {
   `kotlin-dsl`
 }
 
 dependencies {
-  implementation(plugin("org.gradle.kotlin.kotlin-dsl", expectedKotlinDslPluginsVersion))
+  compileOnly(embeddedKotlin("gradle-plugin"))
   implementation(plugin(libs.plugins.gradle.publish))
   implementation(plugin(libs.plugins.nebula.release))
-}
-
-dependencyLocking {
-  lockAllConfigurations()
 }
 
 tasks.withType<JavaCompile>().configureEach { options.release.set(8) }
