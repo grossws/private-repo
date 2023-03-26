@@ -16,8 +16,12 @@
 
 package ws.gross.gradle;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.gradle.api.Action;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.plugins.AppliedPlugin;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
 import ws.gross.gradle.tasks.ReleaseApproveTask;
@@ -25,7 +29,11 @@ import ws.gross.gradle.tasks.ReleaseApproveTask;
 public class ReleaseApprovePlugin implements Plugin<Project> {
   @Override
   public void apply(Project project) {
-    project.getPluginManager().withPlugin("nebula.release", ap -> {
+    AtomicBoolean applied = new AtomicBoolean();
+
+    Action<AppliedPlugin> action = ap -> {
+      if(applied.get()) return;
+
       TaskContainer tasks = project.getTasks();
 
       TaskProvider<ReleaseApproveTask> task = tasks.register("approveRelease", ReleaseApproveTask.class, t -> {
@@ -36,6 +44,11 @@ public class ReleaseApprovePlugin implements Plugin<Project> {
       tasks.named("candidateSetup", t -> t.dependsOn(task));
       tasks.named("finalSetup", t -> t.dependsOn(task));
       tasks.named("release", t -> t.mustRunAfter(task));
-    });
+
+      applied.set(true);
+    };
+
+    project.getPluginManager().withPlugin("nebula.release", action);
+    project.getPluginManager().withPlugin("com.netflix.nebula.release", action);
   }
 }
