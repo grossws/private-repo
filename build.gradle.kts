@@ -94,6 +94,8 @@ testing {
   suites {
     named<JvmTestSuite>("test") {
       dependencies {
+        implementation(project.dependencies.platform(project.dependencies.kotlin("bom", embeddedKotlinVersion)))
+        implementation(project.dependencies.create(project.dependencies.kotlin("stdlib-jdk8", embeddedKotlinVersion)))
         implementation(project.dependencies.plugin(libs.plugins.nebula.release))
       }
     }
@@ -103,6 +105,7 @@ testing {
 
       dependencies {
         implementation(project.dependencies.platform(project.dependencies.kotlin("bom", embeddedKotlinVersion)))
+        implementation(project.dependencies.create(project.dependencies.kotlin("stdlib-jdk8", embeddedKotlinVersion)))
         implementation(libs.assertk.jvm)
         implementation(libs.kgit)
         implementation(project.dependencies.platform(libs.jackson.bom))
