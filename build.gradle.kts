@@ -19,7 +19,11 @@ plugins {
   kotlin("jvm") version embeddedKotlinVersion
 }
 
+@Suppress("UnstableApiUsage")
 gradlePlugin {
+  website.set("https://github.com/grossws/private-repo")
+  vcsUrl.set("https://github.com/grossws/private-repo.git")
+
   plugins.create("privateRepo") {
     id = "ws.gross.private-repo"
     displayName = "Settings plugin for private repository configuration and bootstrapping"
@@ -28,6 +32,7 @@ gradlePlugin {
       to use private Nexus/Artifactory repository with auth and convenient defaults.
     """.trimIndent()
     implementationClass = "ws.gross.gradle.PrivateRepoPlugin"
+    tags.set(listOf("repository", "private-repository", "nexus", "artifactory"))
   }
 
   plugins.create("privateRepoBase") {
@@ -59,6 +64,7 @@ gradlePlugin {
       to use with private Nexus/Artifactory authenticated repo.
     """.trimIndent()
     implementationClass = "ws.gross.gradle.PrivateRepoPublishPlugin"
+    tags.set(listOf("repository", "private-repository", "nexus", "artifactory", "publish", "maven-publish"))
   }
 
   plugins.create("bootstrapManifest") {
@@ -80,13 +86,8 @@ gradlePlugin {
       Use `-Prelease.approve=true` in non-interactive context.
     """.trimIndent()
     implementationClass = "ws.gross.gradle.ReleaseApprovePlugin"
+    tags.set(listOf("release", "git", "nebula-release"))
   }
-}
-
-pluginBundle {
-  website = "https://github.com/grossws/private-repo"
-  vcsUrl = "https://github.com/grossws/private-repo.git"
-  tags = listOf("repository", "private-repository", "nexus", "artifactory")
 }
 
 @Suppress("UnstableApiUsage")

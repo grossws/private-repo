@@ -354,7 +354,8 @@ private fun parseRepos(data: String, prefix: String) = data.lineSequence()
   .map { Repo(it[1], it[2], mapper.readValue(it[3])) }
   .toList()
 
+@Suppress("DEPRECATION")
 private fun parseDependencyRepos(data: String): List<Repo> = parseRepos(data, "REPO")
-  .sortedBy { it.name.lowercase(Locale.ROOT) }
+  .sortedBy { it.name.toLowerCase(Locale.ROOT) }
 
 private fun parsePluginRepos(data: String): List<Repo> = parseRepos(data, "PLUGIN_REPO")

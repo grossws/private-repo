@@ -101,9 +101,11 @@ class BootstrapManifestPluginFunctionalTest {
 
       abstract class DumpBootstrapManifests : DefaultTask() {
         @get:InputFiles
+        @get:PathSensitive(PathSensitivity.RELATIVE)
         abstract val manifests: ConfigurableFileCollection
 
-        @get:Input
+        @get:InputDirectory
+        @get:PathSensitive(PathSensitivity.RELATIVE)
         abstract val baseDirectory: DirectoryProperty
 
         @TaskAction

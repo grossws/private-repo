@@ -83,7 +83,7 @@ fun publishCatalogAndManifest(baseDir: File) {
 
     catalog {
       versionCatalog {
-        alias("guava").to("com.google.guava", "guava").version("31.0.1-jre")
+        library("guava", "com.google.guava", "guava").version("31.0.1-jre")
       }
     }
 
