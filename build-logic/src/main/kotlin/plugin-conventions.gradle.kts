@@ -16,10 +16,11 @@
 
 plugins {
   id("com.gradle.plugin-publish")
-  id("nebula.release")
+  id("com.netflix.nebula.release")
 }
 
 tasks.withType<JavaCompile>().configureEach { options.release.set(8) }
+pluginManager.withPlugin("org.jetbrains.kotlin.jvm", KotlinConfigureAction(project))
 
 dependencyLocking {
   lockAllConfigurations()

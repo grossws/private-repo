@@ -24,8 +24,6 @@ dependencies {
   implementation(plugin(libs.plugins.nebula.release))
 }
 
-tasks.withType<JavaCompile>().configureEach { options.release.set(8) }
-
 fun DependencyHandler.plugin(id: String, version: String) = create("$id:$id.gradle.plugin:$version")
 
 fun DependencyHandler.plugin(plugin: Provider<PluginDependency>) = plugin.get().run {
