@@ -55,6 +55,7 @@ gradlePlugin {
       and version catalogs to dependencyResolutionManagement.
     """.trimIndent()
     implementationClass = "ws.gross.gradle.BootstrapPlugin"
+    tags.set(listOf("repository", "private-repository", "bootstrap"))
   }
 
   plugins.create("privateRepoPublish") {
