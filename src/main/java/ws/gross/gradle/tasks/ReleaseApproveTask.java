@@ -48,13 +48,13 @@ public abstract class ReleaseApproveTask extends DefaultTask {
   @TaskAction
   void run() {
     if (approve.get().equals("true")) {
-      getLogger().info("Explicitly approved via -P${approveProperty.get()}=true");
+      getLogger().info("Explicitly approved via -P{}=true", getApproveProperty().get());
       return;
     } else if (approve.get().equals("false")) {
-      getLogger().info("Explicitly not approved via -P${approveProperty.get()}=false");
+      getLogger().info("Explicitly not approved via -P{}=false", getApproveProperty().get());
     } else {
       UserInputHandler userInputHandler = getServices().get(UserInputHandler.class);
-      Boolean answer = userInputHandler.askYesNoQuestion("Release ${projectVersion.get()} version?");
+      Boolean answer = userInputHandler.askYesNoQuestion(String.format("Release %s version?", getProjectVersion().get()));
       if (answer == null) {
         getLogger().info("Interactive approve failed to get answer, maybe running in non-interactive environment");
       } else if (!answer) {
