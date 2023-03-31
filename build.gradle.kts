@@ -43,6 +43,7 @@ gradlePlugin {
       Used by other settings plugins.
     """.trimIndent()
     implementationClass = "ws.gross.gradle.PrivateRepoBasePlugin"
+    tags.set(listOf("repository", "private-repository", "nexus", "artifactory"))
   }
 
   plugins.create("privateRepoBootstrap") {
@@ -76,6 +77,7 @@ gradlePlugin {
       Also configures manifest publication.
     """.trimIndent()
     implementationClass = "ws.gross.gradle.BootstrapManifestPlugin"
+    tags.set(listOf("bootstrap", "version-catalogs", "plugins", "private-repository"))
   }
 
   plugins.create("releaseApprove") {
