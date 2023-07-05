@@ -170,7 +170,7 @@ class ReleaseApprovePluginFunctionalTest {
     projectDir.resolve("build.gradle.kts").writeText("""
       plugins { 
         id("ws.gross.release-approve")
-        id("nebula.release") version "16.0.0"
+        id("nebula.release") version "17.2.0"
       }
       
     """.trimIndent())
@@ -183,6 +183,7 @@ class ReleaseApprovePluginFunctionalTest {
     projectDir.resolve(".gitignore").writeText("""
       .gradle/
       remote.git/
+      build/
     """.trimIndent())
 
     KGit.init {
