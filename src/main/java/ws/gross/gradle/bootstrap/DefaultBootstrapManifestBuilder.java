@@ -41,6 +41,7 @@ import static ws.gross.gradle.utils.GradleUtils.parseList;
 import static ws.gross.gradle.utils.GradleUtils.parseMap;
 import static ws.gross.gradle.utils.StringUtils.toUpperCamelCase;
 
+@SuppressWarnings("CodeBlock2Expr")
 public class DefaultBootstrapManifestBuilder implements NamedBootstrapManifestBuilder {
   private final String name;
 

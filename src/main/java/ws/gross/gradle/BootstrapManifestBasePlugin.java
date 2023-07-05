@@ -41,6 +41,7 @@ import ws.gross.gradle.extensions.DefaultBootstrapManifestPluginExtension;
 import ws.gross.gradle.tasks.GenerateBootstrapManifest;
 import ws.gross.gradle.utils.GradleUtils;
 
+@SuppressWarnings("CodeBlock2Expr")
 public class BootstrapManifestBasePlugin implements Plugin<Project> {
   public static final String GENERATE_BOOTSTRAP_MANIFEST_TASK_NAME = "generateBootstrapManifest";
 
@@ -59,9 +60,7 @@ public class BootstrapManifestBasePlugin implements Plugin<Project> {
   public void apply(Project project) {
     project.getPluginManager().apply("base");
 
-    //noinspection ConstantValue
-    if (!GradleUtils.isDslAccessorsGeneration(project)
-        && (project.getGroup() == null || project.getGroup().toString().isEmpty())) {
+    if (!GradleUtils.isDslAccessorsGeneration(project) && project.getGroup().toString().isEmpty()) {
       throw new IllegalArgumentException("Project group required for ws.gross.bootstrap-manifest plugin");
     }
 

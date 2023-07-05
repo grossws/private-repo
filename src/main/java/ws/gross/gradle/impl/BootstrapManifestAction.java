@@ -23,6 +23,7 @@ import org.gradle.api.logging.Logging;
 import ws.gross.gradle.bootstrap.NamedBootstrapManifestBuilder;
 import ws.gross.gradle.extensions.PrivateRepoExtension;
 
+@SuppressWarnings("CodeBlock2Expr")
 public class BootstrapManifestAction implements Action<Settings> {
   private static final Logger logger = Logging.getLogger(BootstrapManifestAction.class);
 
@@ -33,7 +34,6 @@ public class BootstrapManifestAction implements Action<Settings> {
   }
 
   @Override
-  @SuppressWarnings("UnstableApiUsage")
   public void execute(Settings settings) {
     PrivateRepoExtension ext = settings.getExtensions().getByType(PrivateRepoExtension.class);
     NamedBootstrapManifestBuilder manifest = ext.getManifests().getByName(name);
