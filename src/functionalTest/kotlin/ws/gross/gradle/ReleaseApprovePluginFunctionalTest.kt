@@ -31,10 +31,10 @@ import java.util.stream.Stream
 class ReleaseApprovePluginFunctionalTest {
   companion object {
     @JvmStatic
-    fun approve() = parameters(approve = true, args = listOf("approveRelease"), configurationCache = true)
+    fun approve() = parameters(approve = true, args = listOf("approveRelease"))
 
     @JvmStatic
-    fun disallow() = parameters(approve = false, args = listOf("approveRelease"), configurationCache = true)
+    fun disallow() = parameters(approve = false, args = listOf("approveRelease"))
       .flatMap { Stream.of(it, it.copy(approve = null)) }
 
     @JvmStatic

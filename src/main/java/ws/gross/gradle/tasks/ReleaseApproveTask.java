@@ -28,7 +28,9 @@ public abstract class ReleaseApproveTask extends DefaultTask {
   private final Provider<String> approve;
 
   public ReleaseApproveTask() {
-    getProjectVersion().set(getProject().provider(() -> getProject().getVersion().toString()));
+    notCompatibleWithConfigurationCache("nebula-release doesn't support configuration cache");
+
+    getProjectVersion().set(getProject().getVersion().toString());
     getApproveProperty().convention("release.approve");
 
     approve = getProject().getProviders().gradleProperty(getApproveProperty()).orElse("");
