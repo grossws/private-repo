@@ -28,8 +28,8 @@ class KotlinConfigureAction(private val project: Project) : Action<AppliedPlugin
       @Suppress("DEPRECATION")
       compilerOptions {
         jvmTarget.set(JvmTarget.JVM_1_8)
-        apiVersion.set(KotlinVersion.KOTLIN_1_4)
-        languageVersion.set(KotlinVersion.KOTLIN_1_4)
+        apiVersion.set(KotlinVersion.KOTLIN_1_8)
+        languageVersion.set(KotlinVersion.KOTLIN_1_8)
       }
     }
   }

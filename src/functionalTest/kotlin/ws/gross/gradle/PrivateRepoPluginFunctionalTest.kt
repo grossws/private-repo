@@ -48,9 +48,9 @@ class PrivateRepoPluginFunctionalTest {
   inner class Prerequisites {
     @Test
     fun `fails if old gradle`() {
-      val result = createRunner("7.3").buildAndFail()
+      val result = createRunner("7.6").buildAndFail()
 
-      assertThat(result).output().any { it.contains("Only Gradle 7.4+ supported", ignoreCase = true) }
+      assertThat(result).output().any { it.contains("Only Gradle 8.0+ supported", ignoreCase = true) }
     }
 
     @Test
@@ -66,7 +66,7 @@ class PrivateRepoPluginFunctionalTest {
   @Nested
   inner class NormalUse {
     @ParameterizedTest
-    @ValueSource(strings = ["7.4", "7.4.1", "7.6.1","8.0.2"])
+    @ValueSource(strings = ["8.0.2", "8.1.1", "8.2"])
     fun `sane defaults`(gradleVersion: String) {
       val result = createRunner(gradleVersion).build()
 
@@ -80,7 +80,7 @@ class PrivateRepoPluginFunctionalTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["7.4", "7.4.1", "7.6.1","8.0.2"])
+    @ValueSource(strings = ["8.0.2", "8.1.1", "8.2"])
     fun `correct plugin repos`(gradleVersion: String) {
       val result = createRunner(gradleVersion).build()
 
@@ -196,7 +196,7 @@ class PrivateRepoPluginFunctionalTest {
 
   @Nested
   open inner class BootstrapManifests : BootstrapManifestsBase() {
-    override val gradleVersion = "7.4"
+    override val gradleVersion = "8.2"
 
     override fun configureBootstrap() {
       projectDir.resolve("settings.gradle.kts").appendText("""
@@ -212,11 +212,6 @@ class PrivateRepoPluginFunctionalTest {
     override fun configureBootstrapCatalogs() {
       // no-op
     }
-  }
-
-  @Nested
-  inner class BootstrapManifestsDependencyResolutionServicesRegression : BootstrapManifests() {
-    override val gradleVersion = "7.4.1"
   }
 
   private fun createRunner(gradleVersion: String? = null) = createRunner(projectDir, gradleVersion)

@@ -53,7 +53,7 @@ public class PrivateRepoBasePlugin implements Plugin<Settings> {
 
   @NotNull
   private Supplier<DependencyResolutionServices> getDrsSupplier() {
-    return () ->{
+    return () -> {
       try {
         Method getter = pluginDependencyResolutionServices.getClass().getDeclaredMethod(GET_DRS_METHOD_NAME);
         getter.setAccessible(true);

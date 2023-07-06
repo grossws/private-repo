@@ -25,8 +25,8 @@ import ws.gross.gradle.impl.PrivateRepoPluginImpl;
 public class PrivateRepoPlugin implements Plugin<Settings> {
   @Override
   public void apply(Settings settings) {
-    if (GradleVersion.current().compareTo(GradleVersion.version("7.4")) < 0) {
-      throw new PluginInstantiationException("Only Gradle 7.4+ supported");
+    if (GradleVersion.current().compareTo(GradleVersion.version("8.0")) < 0) {
+      throw new PluginInstantiationException("Only Gradle 8.0+ supported");
     }
 
     settings.getPluginManager().apply(PrivateRepoPluginImpl.class);
